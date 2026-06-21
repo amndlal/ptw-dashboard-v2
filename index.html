@@ -11,6 +11,95 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: #1a1a2e; display: flex; height: 100vh; overflow: hidden; }
 
+        /* Login Screen */
+        .login-screen {
+            position: fixed;
+            inset: 0;
+            background: #1a1a2e;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-screen.hidden { display: none; }
+
+        .login-box {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 90%;
+            max-width: 380px;
+            text-align: center;
+        }
+
+        .login-box .login-icon {
+            width: 60px;
+            height: 60px;
+            background: #e8750a;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .login-box h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+
+        .login-box p {
+            font-size: 0.82rem;
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .login-box input:focus {
+            outline: none;
+            border-color: #e8750a;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: #e8750a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 4px;
+        }
+
+        .login-box button:hover { background: #d06a09; }
+
+        .login-error {
+            color: #dc2626;
+            font-size: 0.78rem;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .login-error.show { display: block; }
+
         /* Sidebar */
         .sidebar { width: 220px; background: #e8750a; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
         .sidebar-header { padding: 20px 16px; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.8; border-bottom: 1px solid rgba(255,255,255,0.2); }
@@ -158,6 +247,21 @@
     </style>
 </head>
 <body>
+    <!-- Login Screen -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-box">
+            <div class="login-icon"><i class="fas fa-shield-alt"></i></div>
+            <h2>PTW Dashboard</h2>
+            <p>Enter your credentials to access the system</p>
+            <form onsubmit="handleLogin(event)">
+                <input type="text" id="loginUser" placeholder="Username" required>
+                <input type="password" id="loginPass" placeholder="Password" required>
+                <button type="submit"><i class="fas fa-sign-in-alt"></i> Log In</button>
+            </form>
+            <p class="login-error" id="loginError">Invalid username or password</p>
+        </div>
+    </div>
+
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">Areas</div>
@@ -672,6 +776,29 @@
             t.textContent = msg;
             t.className = 'toast show';
             setTimeout(() => { t.className = 'toast'; }, 3000);
+        }
+
+        // === LOGIN ===
+        const VALID_USER = 'amndlal';
+        const VALID_PASS = 'ptw2026';
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
+
+            if (user === VALID_USER && pass === VALID_PASS) {
+                document.getElementById('loginScreen').classList.add('hidden');
+                sessionStorage.setItem('ptw_logged_in', 'true');
+            } else {
+                document.getElementById('loginError').classList.add('show');
+                setTimeout(() => document.getElementById('loginError').classList.remove('show'), 3000);
+            }
+        }
+
+        // Check if already logged in this session
+        if (sessionStorage.getItem('ptw_logged_in') === 'true') {
+            document.getElementById('loginScreen').classList.add('hidden');
         }
 
         // === INIT ===
