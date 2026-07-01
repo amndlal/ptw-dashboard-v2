@@ -1,812 +1,1005 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contractor Management / Permit to Work</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: #1a1a2e; display: flex; height: 100vh; overflow: hidden; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contractor Management — Permit to Work System</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<style>
+  :root{
+    --purple:#6366f1; --purple-dark:#4f46e5; --bg:#f8fafc; --card:#ffffff;
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --yellow-a:#eab308; --yellow-b:#facc15; --brown:#422006;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased;
+  }
+  #root{height:100vh}
+  .app{display:flex;height:100vh;overflow:hidden}
 
-        /* Login Screen */
-        .login-screen {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #312e81 100%);
-            z-index: 99999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+  /* Sidebar */
+  .sidebar{
+    width:250px;flex-shrink:0;background:linear-gradient(160deg,var(--yellow-a),var(--yellow-b));
+    color:var(--brown);display:flex;flex-direction:column;padding:18px 14px;overflow-y:auto;
+  }
+  .brand{font-size:28px;font-weight:800;letter-spacing:1px;padding:6px 10px 18px;color:var(--brown)}
+  .nav-item{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;border-radius:12px;
+    cursor:pointer;font-weight:600;font-size:14px;transition:background .15s,transform .1s;color:var(--brown);
+  }
+  .nav-item:hover{background:rgba(66,32,6,.10)}
+  .nav-item.active{background:rgba(66,32,6,.20)}
+  .nav-item .badge{background:var(--brown);color:var(--yellow-b);border-radius:999px;font-size:11px;padding:2px 8px;font-weight:700;min-width:22px;text-align:center}
+  .nav-sub{margin-left:12px;border-left:2px solid rgba(66,32,6,.25);padding-left:6px}
+  .nav-caret{transition:transform .15s;font-size:11px;opacity:.7}
+  .nav-caret.open{transform:rotate(90deg)}
 
-        .login-screen.hidden { display: none; }
+  /* Main */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .header{
+    background:var(--card);border-bottom:1px solid var(--line);padding:16px 26px;
+    display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  }
+  .header h1{font-size:20px;font-weight:800}
+  .header .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .header-actions{display:flex;gap:10px;align-items:center}
+  .content{flex:1;overflow-y:auto;padding:22px 26px}
 
-        .login-box {
-            background: white;
-            border-radius: 16px;
-            padding: 40px;
-            width: 90%;
-            max-width: 380px;
-            text-align: center;
-        }
+  /* Buttons */
+  .btn{border:none;cursor:pointer;font-weight:600;font-size:13.5px;border-radius:11px;padding:10px 15px;transition:.15s;font-family:inherit}
+  .btn-primary{background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff}
+  .btn-primary:hover{filter:brightness(1.07)}
+  .btn-ghost{background:#eef2ff;color:var(--purple-dark)}
+  .btn-ghost:hover{background:#e0e7ff}
+  .btn-light{background:#f1f5f9;color:var(--ink)}
+  .btn-light:hover{background:#e2e8f0}
+  .btn-danger{background:#fee2e2;color:#b91c1c}
+  .btn-danger:hover{background:#fecaca}
+  .btn-icon{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;font-size:16px}
+  .btn-sm{padding:6px 10px;font-size:12px;border-radius:9px}
 
-        .login-box .login-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #6366f1, #4f46e5);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 1.5rem;
-            color: white;
-        }
+  /* Cards + layout */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+  .section{margin-bottom:24px}
+  .section-title{font-size:15px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .grid{display:grid;gap:14px}
+  .stats-row{grid-template-columns:repeat(auto-fit,minmax(155px,1fr))}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+  .stat .n{font-size:28px;font-weight:800;line-height:1}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:6px;font-weight:600}
+  .stat.warn{background:#fffbeb;border-color:#fde68a}
+  .stat.warn .n{color:#b45309}
 
-        .login-box h2 {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #1a1a2e;
-            margin-bottom: 6px;
-        }
+  /* Table */
+  .table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--line);background:var(--card)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:11px 14px;text-align:left;white-space:nowrap}
+  th{background:#f8fafc;color:var(--muted);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;user-select:none;border-bottom:1px solid var(--line)}
+  th:hover{color:var(--ink)}
+  tbody tr{border-bottom:1px solid var(--line)}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:#f8fafc}
+  tr.row-expired{background:#fef2f2}
+  tr.row-expired:hover{background:#fee2e2}
+  tr.row-expiring{background:#fffbeb}
+  tr.row-expiring:hover{background:#fef3c7}
 
-        .login-box p {
-            font-size: 0.82rem;
-            color: #6b7280;
-            margin-bottom: 24px;
-        }
+  /* Badges */
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700}
+  .st-Draft{background:#f1f5f9;color:#475569}
+  .st-Submitted{background:#fef9c3;color:#a16207}
+  .st-Approved{background:#dcfce7;color:#15803d}
+  .st-Active{background:#dbeafe;color:#1d4ed8}
+  .st-Closed{background:#fee2e2;color:#b91c1c}
+  .warn-pill{background:#fef3c7;color:#b45309}
+  .exp-pill{background:#fee2e2;color:#b91c1c}
 
-        .login-box input {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 0.88rem;
-            font-family: 'Inter', sans-serif;
-            margin-bottom: 12px;
-            transition: border-color 0.2s;
-        }
+  /* Search + filters */
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+  .search{flex:1;min-width:220px;position:relative}
+  .search input{width:100%;padding:11px 14px 11px 38px;border:1px solid var(--line);border-radius:11px;font-size:13.5px;font-family:inherit;background:var(--card)}
+  .search input:focus{outline:none;border-color:var(--purple)}
+  .search .ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted)}
+  .filters{display:flex;flex-wrap:wrap;gap:8px}
+  .fpill{padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:12.5px;font-weight:600;color:var(--muted);transition:.15s}
+  .fpill:hover{border-color:var(--purple);color:var(--purple-dark)}
+  .fpill.on{background:var(--purple);border-color:var(--purple);color:#fff}
 
-        .login-box input:focus {
-            outline: none;
-            border-color: #6366f1;
-        }
+  /* Contractor / area cards */
+  .cards-grid{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+  .ccard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.05);cursor:pointer;transition:.15s}
+  .ccard:hover{box-shadow:0 6px 18px rgba(15,23,42,.10);transform:translateY(-1px)}
+  .ccard h4{font-size:15px;margin-bottom:3px}
+  .ccard .co{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  .ccard .meta{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+  .ccard .foot{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .card-actions{display:flex;gap:6px}
 
-        .login-box button {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #6366f1, #4f46e5);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.88rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 4px;
-        }
+  .area-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  .acard{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.05);cursor:pointer;transition:.15s}
+  .acard:hover{box-shadow:0 6px 18px rgba(15,23,42,.10);transform:translateY(-1px)}
+  .acard .thumb{height:130px;background:#f1f5f9;position:relative;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px}
+  .acard .abody{padding:13px 15px}
+  .acard h4{font-size:15px;margin-bottom:6px}
+  .acard .counts{display:flex;gap:14px;font-size:12.5px;color:var(--muted);font-weight:600}
+  .mini-pin{position:absolute;width:14px;height:14px;background:var(--purple);border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 1px 4px rgba(0,0,0,.4)}
 
-        .login-box button:hover { opacity: 0.9; transform: translateY(-1px); }
+  /* Floor plan viewer */
+  .fp-wrap{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .fp-toolbar{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap}
+  .fp-stage{position:relative;height:560px;overflow:hidden;background:#0f172a10;cursor:grab}
+  .fp-stage.dragging{cursor:grabbing}
+  .fp-inner{position:absolute;top:0;left:0;transform-origin:0 0}
+  .fp-img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
+  .fp-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;flex-direction:column;gap:8px}
+  .pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;z-index:5}
+  .pin .dot{width:20px;height:20px;background:var(--purple);border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .pin .lbl{position:absolute;left:50%;top:-8px;transform:translate(-50%,-100%);background:#0f172a;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:7px;white-space:nowrap;pointer-events:none}
+  .pin .lbl:after{content:'';position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0f172a}
 
-        .login-error {
-            color: #dc2626;
-            font-size: 0.78rem;
-            margin-top: 10px;
-            display: none;
-        }
+  /* Modal / overlay */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:34px 16px;overflow-y:auto}
+  .modal{background:var(--card);border-radius:16px;width:100%;max-width:860px;box-shadow:0 24px 60px rgba(0,0,0,.3);overflow:hidden}
+  .modal-sm{max-width:440px}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line)}
+  .modal-head h3{font-size:17px;font-weight:800}
+  .modal-body{padding:22px;max-height:72vh;overflow-y:auto}
+  .modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+  .x{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
 
-        .login-error.show { display: block; }
+  /* Form */
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;padding:0 22px;border-bottom:1px solid var(--line);background:#f8fafc}
+  .tab{padding:12px 14px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+  .tab:hover{color:var(--ink)}
+  .tab.on{color:var(--purple-dark);border-bottom-color:var(--purple)}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:#334155}
+  .field input,.field select,.field textarea{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:13.5px;font-family:inherit;background:var(--card);color:var(--ink)
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--purple)}
+  .field textarea{resize:vertical;min-height:76px}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .check-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+  .check{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;transition:.12s;background:var(--card)}
+  .check:hover{border-color:var(--purple)}
+  .check.on{background:#eef2ff;border-color:var(--purple);color:var(--purple-dark)}
+  .check input{width:16px;height:16px;accent-color:var(--purple)}
 
-        /* Sidebar */
-        .sidebar { width: 240px; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
-        .sidebar-header { padding: 20px 16px; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.6; border-bottom: 1px solid rgba(255,255,255,0.08); }
-        .sidebar-item { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 0.88rem; font-weight: 500; border-left: 3px solid transparent; }
-        .sidebar-item:hover { background: rgba(255,255,255,0.1); }
-        .sidebar-item.active { background: rgba(99,102,241,0.15); border-left-color: #6366f1; font-weight: 700; color: #a5b4fc; }
-        .sidebar-count { background: rgba(99,102,241,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; color: #a5b4fc; }
-
-        /* Header */
-        .header { background: #1a1a2e; color: white; padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 1.1rem; font-weight: 700; }
-        .header-actions { display: flex; gap: 10px; }
-        .btn-settings { background: rgba(255,255,255,0.1); border: none; color: white; width: 38px; height: 38px; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: background 0.2s; }
-        .btn-settings:hover { background: rgba(255,255,255,0.2); }
-        .btn-new { background: #6366f1; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.2s; }
-        .btn-new:hover { background: #4f46e5; }
-
-        /* Main */
-        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
-
-        /* Grid View */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
-        .area-card { background: white; border-radius: 12px; overflow: hidden; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; position: relative; }
-        .area-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(99,102,241,0.12); border-color: #6366f1; }
-        .area-card-image { height: 200px; background: #e5e7eb; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .area-card-image img { width: 100%; height: 100%; object-fit: cover; }
-        .area-card-image .no-image { color: #9ca3af; font-size: 0.85rem; }
-        .area-card-badge { position: absolute; top: 10px; left: 10px; background: #0f172a; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; }
-        .area-card-count { position: absolute; top: 10px; right: 10px; background: #6366f1; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; }
-        .area-card-footer { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
-        .area-card-footer h3 { font-size: 0.95rem; font-weight: 600; }
-        .area-card-footer span { font-size: 0.78rem; color: #6b7280; }
-
-        /* Pin markers on cards */
-        .pin-marker { position: absolute; width: 12px; height: 12px; background: #dc2626; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transform: translate(-50%, -50%); cursor: pointer; z-index: 5; }
-        .pin-marker:hover { transform: translate(-50%, -50%) scale(1.3); }
-        .pin-label { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); background: #1a1a2e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; white-space: nowrap; pointer-events: none; }
-
-        /* Detail View */
-        .detail-view { display: none; }
-        .detail-view.active { display: block; }
-        .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .detail-header h2 { font-size: 1.3rem; font-weight: 700; }
-        .detail-controls { display: flex; gap: 8px; }
-        .detail-btn { background: white; border: 1px solid #e5e7eb; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-        .detail-btn:hover { border-color: #1a1a2e; }
-        .floor-container { background: white; border-radius: 12px; overflow: hidden; position: relative; height: 450px; border: 1px solid #e5e7eb; }
-        .floor-container img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s; cursor: grab; }
-        .floor-container img:active { cursor: grabbing; }
-        .floor-container .no-image { display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af; }
-
-        /* Contractor Cards */
-        .contractor-list { margin-top: 24px; }
-        .contractor-list h3 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
-        .contractor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
-        .contractor-card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; transition: all 0.2s; }
-        .contractor-card:hover { border-color: #6366f1; box-shadow: 0 4px 12px rgba(99,102,241,0.08); }
-        .contractor-card h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
-        .contractor-card .cc-company { font-size: 0.8rem; color: #6b7280; margin-bottom: 8px; }
-        .contractor-card .cc-detail { font-size: 0.78rem; color: #4b5563; margin-bottom: 3px; }
-        .contractor-card .cc-actions { display: flex; gap: 8px; margin-top: 10px; }
-        .cc-btn { padding: 5px 12px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid #e5e7eb; background: white; color: #4b5563; transition: all 0.2s; }
-        .cc-btn:hover { border-color: #1a1a2e; color: #1a1a2e; }
-        .cc-btn.delete:hover { border-color: #dc2626; color: #dc2626; }
-
-        /* Modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s; }
-        .modal-overlay.open { opacity: 1; visibility: visible; }
-        .modal { background: white; border-radius: 16px; width: 90%; max-width: 700px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; }
-        .modal-header { padding: 20px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h2 { font-size: 1.1rem; font-weight: 700; }
-        .modal-close { cursor: pointer; color: #9ca3af; font-size: 1.1rem; }
-        .modal-close:hover { color: #1a1a2e; }
-        .modal-body { flex: 1; overflow-y: auto; padding: 24px; }
-        .modal-footer { padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; }
-
-        /* Tabs */
-        .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
-        .tab { padding: 8px 14px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; background: #f3f4f6; color: #6b7280; transition: all 0.2s; border: none; }
-        .tab.active { background: #6366f1; color: white; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        /* Form */
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        .form-group.full { grid-column: 1 / -1; }
-        .form-group label { font-size: 0.75rem; font-weight: 600; color: #6b7280; }
-        .form-group input, .form-group select, .form-group textarea { padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.85rem; font-family: 'Inter', sans-serif; transition: border-color 0.2s; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #6366f1; }
-        .form-group textarea { height: 80px; resize: vertical; }
-
-        /* Checkbox Grid */
-        .checkbox-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; }
-        .checkbox-item:hover { border-color: #6366f1; }
-        .checkbox-item.checked { background: #eef2ff; border-color: #6366f1; }
-        .checkbox-item input[type="checkbox"] { accent-color: #6366f1; }
-
-        /* Floor plan pin selector */
-        .pin-selector { position: relative; cursor: crosshair; border: 2px dashed #e5e7eb; border-radius: 8px; overflow: hidden; min-height: 300px; display: flex; align-items: center; justify-content: center; background: #f9fafb; }
-        .pin-selector img { width: 100%; height: auto; max-height: 400px; object-fit: contain; }
-        .pin-selector .placed-pin { position: absolute; width: 16px; height: 16px; background: #dc2626; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transform: translate(-50%, -50%); pointer-events: none; }
-        .pin-hint { text-align: center; margin-top: 8px; font-size: 0.75rem; color: #9ca3af; }
-
-        /* Settings Modal */
-        .settings-areas { margin-bottom: 20px; }
-        .settings-area-item { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
-        .settings-area-item span { flex: 1; font-size: 0.88rem; font-weight: 500; }
-        .settings-area-item .preview-img { width: 60px; height: 40px; border-radius: 4px; object-fit: cover; border: 1px solid #e5e7eb; }
-        .settings-area-item button { padding: 6px 12px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid #e5e7eb; background: white; transition: all 0.2s; }
-        .settings-area-item button:hover { border-color: #1a1a2e; }
-        .settings-area-item .remove-btn:hover { border-color: #dc2626; color: #dc2626; }
-        .add-area-row { display: flex; gap: 8px; margin-top: 12px; }
-        .add-area-row input { flex: 1; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.85rem; }
-        .add-area-row button { padding: 8px 16px; background: #1e293b; color: white; border: none; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
-        .saving-indicator { color: #1e293b; font-size: 0.8rem; font-weight: 500; }
-
-        /* Detail Popup */
-        .detail-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; z-index: 2000; box-shadow: 0 20px 60px rgba(0,0,0,0.3); display: none; }
-        .detail-popup.open { display: block; }
-        .detail-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1999; display: none; }
-        .detail-popup-overlay.open { display: block; }
-        .detail-popup h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; }
-        .detail-popup .dp-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 0.82rem; }
-        .detail-popup .dp-label { color: #6b7280; font-weight: 500; }
-        .detail-popup .dp-value { color: #1a1a2e; font-weight: 600; text-align: right; max-width: 60%; }
-        .dp-actions { display: flex; gap: 8px; margin-top: 16px; }
-        .dp-btn { flex: 1; padding: 10px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; text-align: center; }
-        .dp-btn.edit { background: #6366f1; color: white; }
-        .dp-btn.delete { background: #fee2e2; color: #dc2626; }
-
-        /* Toast */
-        .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 20px; background: #1a1a2e; color: white; border-radius: 10px; font-size: 0.82rem; z-index: 3000; transform: translateY(80px); opacity: 0; transition: all 0.3s; }
-        .toast.show { transform: translateY(0); opacity: 1; }
-
-        @media (max-width: 768px) {
-            .sidebar { display: none; }
-            .grid { grid-template-columns: 1fr; }
-            .form-grid { grid-template-columns: 1fr; }
-            .checkbox-grid { grid-template-columns: 1fr 1fr; }
-            .content { padding: 16px; }
-        }
-    </style>
+  .banner{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px}
+  .banner.red{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+  .kv{display:grid;grid-template-columns:150px 1fr;gap:8px 14px;font-size:13.5px}
+  .kv .k{color:var(--muted);font-weight:600}
+  .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .chip{background:#eef2ff;color:var(--purple-dark);padding:3px 9px;border-radius:8px;font-size:11.5px;font-weight:600}
+  .empty{text-align:center;color:var(--muted);padding:48px 16px;font-size:14px}
+  .toast{position:fixed;bottom:22px;right:22px;background:#0f172a;color:#fff;padding:13px 18px;border-radius:11px;font-size:13.5px;font-weight:600;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .charts-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .fs-overlay{position:fixed;inset:0;background:#0f172a;z-index:150;display:flex;flex-direction:column}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+</style>
 </head>
 <body>
-    <!-- Login Screen -->
-    <div class="login-screen" id="loginScreen">
-        <div class="login-box">
-            <div class="login-icon"><i class="fas fa-shield-alt"></i></div>
-            <h2>PTW Dashboard</h2>
-            <p>Enter your credentials to access the system</p>
-            <form onsubmit="handleLogin(event)">
-                <input type="text" id="loginUser" placeholder="Username" required>
-                <input type="password" id="loginPass" placeholder="Password" required>
-                <button type="submit"><i class="fas fa-sign-in-alt"></i> Log In</button>
-            </form>
-            <p class="login-error" id="loginError">Invalid username or password</p>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+const RC = window.Recharts || {};
+const {
+  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, Tooltip, Legend, CartesianGrid
+} = RC;
+
+/* ============================= imageStorage utility ============================= */
+const imageStorage = {
+  key: 'ptw_floor_images',
+  getAll(){ try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch { return {}; } },
+  get(area){ return this.getAll()[area] || null; },
+  set(area, base64){ const all = this.getAll(); all[area] = base64; localStorage.setItem(this.key, JSON.stringify(all)); },
+  remove(area){ const all = this.getAll(); delete all[area]; localStorage.setItem(this.key, JSON.stringify(all)); },
+  fileToBase64(file){
+    return new Promise((resolve, reject)=>{
+      const r = new FileReader();
+      r.onload = ()=>resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+};
+
+/* ============================= storage / data model ============================= */
+const KEYS = { permits:'ptw_permits', areas:'ptw_areas', pin:'ptw_admin_pin' };
+const DEFAULT_AREAS = [
+  { name:'P1', parent:null }, { name:'P2', parent:null }, { name:'P3', parent:null },
+  { name:'Yard', parent:null }, { name:'Offsite Yard', parent:'Yard' },
+  { name:'Dach', parent:null }, { name:'General', parent:null },
+];
+const store = {
+  loadPermits(){ try { return JSON.parse(localStorage.getItem(KEYS.permits)) || []; } catch { return []; } },
+  savePermits(p){ localStorage.setItem(KEYS.permits, JSON.stringify(p)); },
+  loadAreas(){ try { const a = JSON.parse(localStorage.getItem(KEYS.areas)); return (a && a.length) ? a : DEFAULT_AREAS; } catch { return DEFAULT_AREAS; } },
+  saveAreas(a){ localStorage.setItem(KEYS.areas, JSON.stringify(a)); },
+  getPin(){ return localStorage.getItem(KEYS.pin) || ''; },
+  setPin(p){ p ? localStorage.setItem(KEYS.pin, p) : localStorage.removeItem(KEYS.pin); },
+};
+
+const WORK_TYPES = ['General','Electrical','Mechanical','Hot Work','Working at Height','Confined Space','Excavation','Plumbing','Cleaning','Inspection','Installation','Demolition'];
+const STATUSES = ['Draft','Submitted','Approved','Active','Closed'];
+const HAZARDS = ['Working at Height','Hot Work','Confined Space','Electrical','Chemical Exposure','Falling Objects','Moving Machinery','Noise','Manual Handling','Slips/Trips','Fire Risk','Toxic Atmosphere'];
+const CONTROLS = ['Area Barricaded','Fire Watch','Gas Testing','Lockout/Tagout','Permit Displayed','Ventilation','Signage Posted','Spotter Present','Rescue Plan','Emergency Stop','First Aid On-Site','Toolbox Talk Done'];
+const PPE = ['Hard Hat','Safety Glasses','Hi-Vis Vest','Safety Boots','Gloves','Ear Protection','Face Shield','Respirator','Fall Harness','Coveralls','Cut-Resistant Gloves','Face Mask'];
+
+/* ============================= helpers ============================= */
+const uid = () => 'id-' + Math.floor(performance.now()*1000).toString(36) + '-' + Math.floor(performance.now()%100000).toString(36);
+let _pnCounter = 0;
+function genPermitNo(existing){
+  let n; let s;
+  do {
+    n = 10000 + Math.floor((performance.now()*7 + (_pnCounter++)*131) % 90000);
+    s = 'PTW-' + n;
+  } while (existing.some(p=>p.permitNo===s));
+  return s;
+}
+function fmtDate(d){ if(!d) return '—'; const dt=new Date(d+'T00:00:00'); return isNaN(dt)? d : dt.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}); }
+function nowISO(){ return new Date().toISOString(); }
+
+function expiryState(p){
+  if(!p.endDate) return 'ok';
+  const end = new Date(p.endDate + 'T' + (p.endTime || '23:59'));
+  const now = new Date();
+  if(p.status==='Closed') return 'ok';
+  const diffH = (end - now)/36e5;
+  if(diffH < 0) return 'expired';
+  if(diffH <= 24) return 'expiring';
+  return 'ok';
+}
+function newPermit(area){
+  return {
+    id: uid(), permitNo:'', status:'Draft',
+    contractorName:'', company:'', contact:'', email:'', workers:1,
+    description:'', location: area && area!=='Overview' ? area : '', workType:'General',
+    startDate:'', endDate:'', startTime:'08:00', endTime:'17:00',
+    floors:[{ floor:1, x:null, y:null }],
+    hazards:[], hazardsOther:'', controls:[], controlsOther:'', ppe:[], ppeOther:'',
+    supervisor:'', supervisorSig:'', safetyOfficer:'', specialInstructions:'', emergencyProc:'',
+    createdAt: nowISO(), updatedAt: nowISO(),
+  };
+}
+
+/* ============================= Toast ============================= */
+function useToast(){
+  const [msg,setMsg]=useState('');
+  const show=useCallback((m)=>{ setMsg(m); setTimeout(()=>setMsg(''),2200); },[]);
+  const node = <div className={'toast'+(msg?' show':'')}>{msg}</div>;
+  return [show,node];
+}
+
+/* ============================= CSV export ============================= */
+function exportCSV(permits, filename){
+  const cols = ['permitNo','status','contractorName','company','contact','email','workers','workType','location','startDate','startTime','endDate','endTime','description','supervisor','safetyOfficer','hazards','controls','ppe'];
+  const esc = v => { v = (v==null?'':Array.isArray(v)?v.join('; '):String(v)); return '"'+v.replace(/"/g,'""')+'"'; };
+  const rows = [cols.join(',')].concat(permits.map(p=>cols.map(c=>esc(p[c])).join(',')));
+  const csv = rows.join('\r\n');
+  // Standard browser download (public static-site equivalent of quick-pages downloadFile)
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename || 'ptw-permits.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============================= AdminAuth ============================= */
+function AdminAuth({ onOk, onCancel }){
+  const [pin,setPin]=useState(''); const [err,setErr]=useState('');
+  const submit=()=>{ if(pin===store.getPin()){ onOk(); } else { setErr('Incorrect PIN'); setPin(''); } };
+  return (
+    <div className="overlay" onClick={onCancel}>
+      <div className="modal modal-sm" onClick={e=>e.stopPropagation()}>
+        <div className="modal-head"><h3>🔒 Admin Approval</h3><button className="x" onClick={onCancel}>×</button></div>
+        <div className="modal-body">
+          <p style={{fontSize:'13.5px',color:'var(--muted)',marginBottom:'14px'}}>Enter the admin PIN to approve this permit.</p>
+          <div className="field">
+            <input type="password" value={pin} autoFocus placeholder="••••"
+              onChange={e=>{setPin(e.target.value);setErr('')}}
+              onKeyDown={e=>e.key==='Enter'&&submit()} />
+          </div>
+          {err && <div style={{color:'#b91c1c',fontSize:'13px',fontWeight:600}}>{err}</div>}
         </div>
+        <div className="modal-foot">
+          <button className="btn btn-light" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-primary" onClick={submit}>Approve</button>
+        </div>
+      </div>
     </div>
+  );
+}
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-header" style="display:flex; align-items:center; gap:10px; padding-bottom:16px; margin-bottom:8px;">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon" style="height:20px; filter: brightness(0) invert(1);">
-            <span>PTW System</span>
-        </div>
-        <div class="sidebar-header" style="border-top:none; padding-top:8px;">Areas</div>
-        <div id="sidebarItems"></div>
-    </aside>
+/* ============================= Settings ============================= */
+function Settings({ areas, setAreas, onClose, toast }){
+  const [newArea,setNewArea]=useState(''); const [parent,setParent]=useState('');
+  const [pin,setPin]=useState(store.getPin());
+  const [imgs,setImgs]=useState(imageStorage.getAll());
+  const topAreas = areas.filter(a=>!a.parent);
 
-    <!-- Main -->
-    <div class="main">
-        <div class="header">
-            <h1>Contractor Management / Permit to Work</h1>
-            <div class="header-actions">
-                <button class="btn-settings" onclick="openSettings()"><i class="fas fa-cog"></i></button>
-                <button class="btn-new" onclick="openPermitForm()"><i class="fas fa-plus"></i> New Job</button>
+  const addArea=()=>{
+    const n=newArea.trim(); if(!n) return;
+    if(areas.some(a=>a.name.toLowerCase()===n.toLowerCase())){ toast('Area already exists'); return; }
+    const next=[...areas,{name:n,parent:parent||null}];
+    setAreas(next); store.saveAreas(next); setNewArea(''); setParent(''); toast('Area added');
+  };
+  const delArea=(name)=>{
+    const next=areas.filter(a=>a.name!==name && a.parent!==name);
+    setAreas(next); store.saveAreas(next); imageStorage.remove(name); setImgs(imageStorage.getAll()); toast('Area removed');
+  };
+  const uploadImg=async(area,file)=>{
+    if(!file) return;
+    try{ const b64=await imageStorage.fileToBase64(file); imageStorage.set(area,b64); setImgs(imageStorage.getAll()); toast('Floor plan uploaded'); }
+    catch{ toast('Upload failed (image too large?)'); }
+  };
+  const savePin=()=>{ store.setPin(pin.trim()); toast(pin.trim()?'Admin PIN saved':'Admin PIN cleared'); };
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-head"><h3>⚙️ Settings</h3><button className="x" onClick={onClose}>×</button></div>
+        <div className="modal-body">
+          <div className="section">
+            <div className="section-title">📍 Manage Areas</div>
+            <div className="toolbar">
+              <input className="field" style={{flex:1,minWidth:160,marginBottom:0,padding:'10px 12px',border:'1px solid var(--line)',borderRadius:10}}
+                placeholder="New area name" value={newArea} onChange={e=>setNewArea(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addArea()} />
+              <select value={parent} onChange={e=>setParent(e.target.value)}
+                style={{padding:'10px 12px',border:'1px solid var(--line)',borderRadius:10,fontFamily:'inherit'}}>
+                <option value="">— No parent —</option>
+                {topAreas.map(a=><option key={a.name} value={a.name}>Under: {a.name}</option>)}
+              </select>
+              <button className="btn btn-primary" onClick={addArea}>+ Add</button>
             </div>
+            <div className="grid cards-grid">
+              {areas.map(a=>(
+                <div key={a.name} className="card" style={{padding:'12px 14px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                    <div>
+                      <strong>{a.name}</strong>
+                      {a.parent && <span className="chip" style={{marginLeft:8}}>↳ {a.parent}</span>}
+                    </div>
+                    <button className="btn btn-danger btn-sm" onClick={()=>delArea(a.name)}>Delete</button>
+                  </div>
+                  {imgs[a.name]
+                    ? <img src={imgs[a.name]} style={{width:'100%',height:80,objectFit:'cover',borderRadius:8}} />
+                    : <div style={{height:40,display:'flex',alignItems:'center',color:'var(--muted)',fontSize:12}}>No floor plan</div>}
+                  <label className="btn btn-light btn-sm" style={{display:'inline-block',marginTop:8,cursor:'pointer'}}>
+                    Upload floor plan
+                    <input type="file" accept="image/*" hidden onChange={e=>uploadImg(a.name,e.target.files[0])} />
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="section">
+            <div className="section-title">🔑 Admin PIN (for permit approval)</div>
+            <p className="hint" style={{marginBottom:8}}>When set, approving a permit (status → Approved) requires this PIN. Leave blank to disable.</p>
+            <div className="toolbar">
+              <input type="text" value={pin} onChange={e=>setPin(e.target.value)} placeholder="e.g. 1234"
+                style={{flex:1,minWidth:160,padding:'10px 12px',border:'1px solid var(--line)',borderRadius:10,fontFamily:'inherit'}} />
+              <button className="btn btn-primary" onClick={savePin}>Save PIN</button>
+            </div>
+          </div>
         </div>
-        <div class="content" id="contentArea">
-            <div id="gridView" class="grid"></div>
-            <div id="detailView" class="detail-view"></div>
-        </div>
+        <div className="modal-foot"><button className="btn btn-light" onClick={onClose}>Close</button></div>
+      </div>
     </div>
+  );
+}
 
-    <!-- Permit Form Modal -->
-    <div class="modal-overlay" id="permitModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="permitFormTitle">New Permit to Work</h2>
-                <span class="modal-close" onclick="closePermitForm()"><i class="fas fa-times"></i></span>
-            </div>
-            <div class="modal-body">
-                <div class="tabs" id="formTabs"></div>
-                <div id="formTabContent"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="cc-btn" onclick="closePermitForm()">Cancel</button>
-                <button class="btn-new" onclick="savePermit()" style="background:#1e293b;"><i class="fas fa-save"></i> Save Permit</button>
-            </div>
-        </div>
+/* ============================= Floor plan pin placer (in form) ============================= */
+function PinPlacer({ area, floors, setFloors }){
+  const img = imageStorage.get(area);
+  const stageRef = useRef(null);
+  const f = floors[0] || { floor:1, x:null, y:null };
+  const place=(e)=>{
+    const r = stageRef.current.getBoundingClientRect();
+    const x = ((e.clientX - r.left)/r.width)*100;
+    const y = ((e.clientY - r.top)/r.height)*100;
+    setFloors([{ ...f, x:Math.round(x*10)/10, y:Math.round(y*10)/10 }]);
+  };
+  if(!area) return <div className="empty">Select a Location on the Work Details tab first.</div>;
+  if(!img) return <div className="empty">No floor plan uploaded for “{area}”.<br/>Add one in ⚙️ Settings to place pins.</div>;
+  return (
+    <div>
+      <p className="hint" style={{marginBottom:10}}>Click on the floor plan to place the contractor's pin.</p>
+      <div ref={stageRef} onClick={place} style={{position:'relative',border:'1px solid var(--line)',borderRadius:12,overflow:'hidden',cursor:'crosshair'}}>
+        <img src={img} style={{width:'100%',display:'block'}} />
+        {f.x!=null && (
+          <div className="pin" style={{left:f.x+'%',top:f.y+'%'}}>
+            <div className="dot"></div>
+          </div>
+        )}
+      </div>
+      {f.x!=null && <div className="hint">Pin at {f.x}%, {f.y}% · <a style={{color:'var(--purple)',cursor:'pointer'}} onClick={()=>setFloors([{...f,x:null,y:null}])}>clear</a></div>}
     </div>
+  );
+}
 
-    <!-- Settings Modal -->
-    <div class="modal-overlay" id="settingsModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>Settings — Area Management</h2>
-                <span class="modal-close" onclick="closeSettings()"><i class="fas fa-times"></i></span>
-            </div>
-            <div class="modal-body" id="settingsBody"></div>
-        </div>
+/* ============================= PTW Form ============================= */
+const TABS = ['General Info','Work Details','Floor Plan','Hazards','Safety Controls','PPE','Authorization'];
+function PTWForm({ initial, areas, onSave, onClose, toast }){
+  const [p,setP]=useState(initial);
+  const [tab,setTab]=useState(0);
+  const [askPin,setAskPin]=useState(false);
+  const set=(k,v)=>setP(prev=>({...prev,[k]:v}));
+  const toggle=(k,v)=>setP(prev=>({...prev,[k]: prev[k].includes(v)? prev[k].filter(x=>x!==v):[...prev[k],v]}));
+
+  const commit=(permit)=>{ onSave(permit); };
+  const trySave=()=>{
+    if(!p.contractorName.trim()){ toast('Contractor name is required'); setTab(0); return; }
+    // Admin PIN gate for Approved status
+    const wasApproved = initial.status==='Approved';
+    if(p.status==='Approved' && !wasApproved && store.getPin()){ setAskPin(true); return; }
+    commit(p);
+  };
+
+  const CheckGrid=({options,field,other,otherField})=>(
+    <div>
+      <div className="check-grid">
+        {options.map(o=>(
+          <label key={o} className={'check'+(p[field].includes(o)?' on':'')}>
+            <input type="checkbox" checked={p[field].includes(o)} onChange={()=>toggle(field,o)} />{o}
+          </label>
+        ))}
+      </div>
+      <div className="field" style={{marginTop:12}}>
+        <label>Other (free text)</label>
+        <input value={p[otherField]} onChange={e=>set(otherField,e.target.value)} placeholder="Add any other items…" />
+      </div>
     </div>
+  );
 
-    <!-- Detail Popup -->
-    <div class="detail-popup-overlay" id="popupOverlay" onclick="closePopup()"></div>
-    <div class="detail-popup" id="detailPopup"></div>
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>{initial.permitNo ? 'Edit Permit '+initial.permitNo : 'New Permit to Work'}</h3>
+          <button className="x" onClick={onClose}>×</button>
+        </div>
+        <div className="tabs">
+          {TABS.map((t,i)=><div key={t} className={'tab'+(tab===i?' on':'')} onClick={()=>setTab(i)}>{t}</div>)}
+        </div>
+        <div className="modal-body">
+          {tab===0 && (
+            <div className="form-grid">
+              <div className="field"><label>Contractor Name *</label><input value={p.contractorName} onChange={e=>set('contractorName',e.target.value)} /></div>
+              <div className="field"><label>Company</label><input value={p.company} onChange={e=>set('company',e.target.value)} /></div>
+              <div className="field"><label>Contact Number</label><input value={p.contact} onChange={e=>set('contact',e.target.value)} /></div>
+              <div className="field"><label>Email</label><input type="email" value={p.email} onChange={e=>set('email',e.target.value)} /></div>
+              <div className="field"><label>Number of Workers</label><input type="number" min="1" value={p.workers} onChange={e=>set('workers',Math.max(1,parseInt(e.target.value)||1))} /></div>
+            </div>
+          )}
+          {tab===1 && (
+            <div>
+              <div className="form-grid">
+                <div className="field"><label>Work Type</label><select value={p.workType} onChange={e=>set('workType',e.target.value)}>{WORK_TYPES.map(w=><option key={w}>{w}</option>)}</select></div>
+                <div className="field"><label>Location (Area)</label><select value={p.location} onChange={e=>set('location',e.target.value)}><option value="">— Select —</option>{areas.map(a=><option key={a.name} value={a.name}>{a.parent?'  ↳ ':''}{a.name}</option>)}</select></div>
+                <div className="field"><label>Start Date</label><input type="date" value={p.startDate} onChange={e=>set('startDate',e.target.value)} /></div>
+                <div className="field"><label>Start Time</label><input type="time" value={p.startTime} onChange={e=>set('startTime',e.target.value)} /></div>
+                <div className="field"><label>End Date</label><input type="date" value={p.endDate} onChange={e=>set('endDate',e.target.value)} /></div>
+                <div className="field"><label>End Time</label><input type="time" value={p.endTime} onChange={e=>set('endTime',e.target.value)} /></div>
+              </div>
+              <div className="field"><label>Work Description</label><textarea value={p.description} onChange={e=>set('description',e.target.value)} placeholder="Describe the work to be performed…" /></div>
+            </div>
+          )}
+          {tab===2 && <PinPlacer area={p.location} floors={p.floors} setFloors={v=>set('floors',v)} />}
+          {tab===3 && <CheckGrid options={HAZARDS} field="hazards" otherField="hazardsOther" />}
+          {tab===4 && <CheckGrid options={CONTROLS} field="controls" otherField="controlsOther" />}
+          {tab===5 && <CheckGrid options={PPE} field="ppe" otherField="ppeOther" />}
+          {tab===6 && (
+            <div>
+              <div className="form-grid">
+                <div className="field"><label>Supervisor Name</label><input value={p.supervisor} onChange={e=>set('supervisor',e.target.value)} /></div>
+                <div className="field"><label>Supervisor Signature</label><input value={p.supervisorSig} onChange={e=>set('supervisorSig',e.target.value)} placeholder="Type full name to sign" /></div>
+                <div className="field"><label>Safety Officer</label><input value={p.safetyOfficer} onChange={e=>set('safetyOfficer',e.target.value)} /></div>
+                <div className="field"><label>Status</label><select value={p.status} onChange={e=>set('status',e.target.value)}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
+              </div>
+              <div className="field"><label>Special Instructions</label><textarea value={p.specialInstructions} onChange={e=>set('specialInstructions',e.target.value)} /></div>
+              <div className="field"><label>Emergency Procedures</label><textarea value={p.emergencyProc} onChange={e=>set('emergencyProc',e.target.value)} /></div>
+              {store.getPin() && <p className="hint">🔒 Setting status to “Approved” will require the admin PIN.</p>}
+            </div>
+          )}
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-light" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={trySave}>Save Permit</button>
+        </div>
+      </div>
+      {askPin && <AdminAuth onOk={()=>{setAskPin(false);commit(p);}} onCancel={()=>setAskPin(false)} />}
+    </div>
+  );
+}
 
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
+/* ============================= PTW Table ============================= */
+function PTWTable({ permits, onEdit, onDelete, onOpen }){
+  const [sort,setSort]=useState({k:'permitNo',dir:1});
+  const sorted=useMemo(()=>{
+    const arr=[...permits];
+    arr.sort((a,b)=>{
+      let x=a[sort.k]??'', y=b[sort.k]??'';
+      x=(''+x).toLowerCase(); y=(''+y).toLowerCase();
+      return x<y?-1*sort.dir : x>y?1*sort.dir : 0;
+    });
+    return arr;
+  },[permits,sort]);
+  const th=(k,label)=><th onClick={()=>setSort(s=>({k,dir:s.k===k?-s.dir:1}))}>{label}{sort.k===k?(sort.dir===1?' ▲':' ▼'):''}</th>;
+  if(!permits.length) return <div className="empty">No permits yet. Click “+ New Job” to create one.</div>;
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead><tr>
+          {th('permitNo','Permit #')}{th('contractorName','Contractor')}{th('company','Company')}
+          {th('workType','Work Type')}{th('location','Location')}{th('startDate','Start')}{th('endDate','End')}
+          {th('status','Status')}<th>Actions</th>
+        </tr></thead>
+        <tbody>
+          {sorted.map(p=>{
+            const ex=expiryState(p);
+            return (
+              <tr key={p.id} className={ex==='expired'?'row-expired':ex==='expiring'?'row-expiring':''} style={{cursor:'pointer'}} onClick={()=>onOpen(p)}>
+                <td style={{fontWeight:700}}>{p.permitNo}</td>
+                <td>{p.contractorName}</td>
+                <td>{p.company||'—'}</td>
+                <td>{p.workType}</td>
+                <td>{p.location||'—'}</td>
+                <td>{fmtDate(p.startDate)}</td>
+                <td>{fmtDate(p.endDate)} {ex==='expired'&&<span className="pill exp-pill">Expired</span>} {ex==='expiring'&&<span className="pill warn-pill">Soon</span>}</td>
+                <td><span className={'pill st-'+p.status}>{p.status}</span></td>
+                <td onClick={e=>e.stopPropagation()}>
+                  <div className="card-actions">
+                    <button className="btn btn-ghost btn-sm" onClick={()=>onEdit(p)}>Edit</button>
+                    <button className="btn btn-danger btn-sm" onClick={()=>onDelete(p)}>Del</button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
-    <script>
-        // === SUPABASE CONFIG ===
-        const SUPABASE_URL = 'https://toelhzkhdvnvqmbmlown.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvZWxoemtoZHZudnFtYm1sb3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NzY3NzYsImV4cCI6MjA5NzQ1Mjc3Nn0.timxteWu9hvR0Qo_d6EV7XPKYPZ3ZXAvYb0uCJnvLzU';
-        const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
+/* ============================= Analytics ============================= */
+const PIE_COLORS=['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6','#a855f7','#f97316','#84cc16','#06b6d4'];
+function Analytics({ permits, areas }){
+  const byWork = useMemo(()=>{ const m={}; permits.forEach(p=>m[p.workType]=(m[p.workType]||0)+1); return Object.entries(m).map(([name,value])=>({name,value})); },[permits]);
+  const byStatus = useMemo(()=>{ const m={}; STATUSES.forEach(s=>m[s]=0); permits.forEach(p=>m[p.status]=(m[p.status]||0)+1); return Object.entries(m).map(([name,value])=>({name,value})); },[permits]);
+  const byArea = useMemo(()=>{ const m={}; permits.forEach(p=>{ const w=parseInt(p.workers)||0; m[p.location||'—']=(m[p.location||'—']||0)+w; }); return Object.entries(m).map(([name,workers])=>({name,workers})); },[permits]);
+  if(!permits.length || !ResponsiveContainer) return null;
+  return (
+    <div className="section">
+      <div className="section-title">📊 Analytics</div>
+      <div className="grid charts-grid">
+        <div className="card">
+          <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Work Type Distribution</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={byWork} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label>
+                {byWork.map((e,i)=><Cell key={i} fill={PIE_COLORS[i%PIE_COLORS.length]} />)}
+              </Pie>
+              <Tooltip /><Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="card">
+          <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Status Breakdown</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={byStatus}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" fontSize={11} /><YAxis allowDecimals={false} fontSize={11} /><Tooltip />
+              <Bar dataKey="value" radius={[6,6,0,0]}>{byStatus.map((e,i)=><Cell key={i} fill={PIE_COLORS[i%PIE_COLORS.length]} />)}</Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="card">
+          <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Area Utilization (workers)</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={byArea}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" fontSize={11} /><YAxis allowDecimals={false} fontSize={11} /><Tooltip />
+              <Bar dataKey="workers" fill="#6366f1" radius={[6,6,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        async function supaFetch(table, method, body, query, upsert) {
-            const url = `${SUPABASE_URL}/rest/v1/${table}${query || ''}`;
-            const h = { ...headers };
-            if (upsert) h['Prefer'] = 'resolution=merge-duplicates,return=representation';
-            const opts = { method, headers: h };
-            if (body) opts.body = JSON.stringify(body);
-            const res = await fetch(url, opts);
-            if (!res.ok) { console.error('Supabase error:', await res.text()); return null; }
-            const text = await res.text();
-            return text ? JSON.parse(text) : null;
-        }
+/* ============================= Zoomable Floor Plan (area detail) ============================= */
+function FloorPlan({ area, permits, onOpenPermit, fullscreen, setFullscreen }){
+  const img = imageStorage.get(area);
+  const [zoom,setZoom]=useState(1);
+  const [pan,setPan]=useState({x:0,y:0});
+  const drag=useRef(null);
+  const stageRef=useRef(null);
+  const pinned = permits.filter(p=>p.floors && p.floors[0] && p.floors[0].x!=null);
 
-        // === DATA ===
-        let areas = ['P1', 'P2', 'P3', 'Yard', 'Dach', 'General'];
-        let permits = [];
-        let floorImages = {};
-        let currentArea = 'Overview';
-        let editingPermitId = null;
-        let pinPosition = null;
-        let dbReady = false;
+  const onWheel=(e)=>{ e.preventDefault(); const d=e.deltaY<0?0.15:-0.15; setZoom(z=>Math.min(5,Math.max(0.4,z+d))); };
+  const onDown=(e)=>{ drag.current={sx:e.clientX,sy:e.clientY,px:pan.x,py:pan.y}; };
+  const onMove=(e)=>{ if(!drag.current) return; setPan({x:drag.current.px+(e.clientX-drag.current.sx),y:drag.current.py+(e.clientY-drag.current.sy)}); };
+  const onUp=()=>{ drag.current=null; };
+  const reset=()=>{ setZoom(1); setPan({x:0,y:0}); };
 
-        // Load from Supabase
-        async function loadData() {
-            try {
-                // Load areas config
-                const configRes = await supaFetch('config', 'GET', null, '?key=eq.areas&select=value');
-                if (configRes && configRes.length > 0) areas = configRes[0].value;
+  const stage = (
+    <div ref={stageRef} className={'fp-stage'+(drag.current?' dragging':'')}
+      onWheel={onWheel} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
+      style={fullscreen?{height:'calc(100vh - 58px)',background:'#0b1220'}:null}>
+      {img ? (
+        <div className="fp-inner" style={{transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`}}>
+          <img className="fp-img" src={img} draggable={false} />
+          {pinned.map(p=>(
+            <div key={p.id} className="pin" style={{left:p.floors[0].x+'%',top:p.floors[0].y+'%'}}
+              onClick={e=>{e.stopPropagation();onOpenPermit(p);}} onMouseDown={e=>e.stopPropagation()}>
+              <div className="lbl">{p.contractorName||p.permitNo}</div>
+              <div className="dot"></div>
+            </div>
+          ))}
+        </div>
+      ) : <div className="fp-empty">🗺️<div>No floor plan for “{area}”. Upload one in ⚙️ Settings.</div></div>}
+    </div>
+  );
 
-                // Load permits
-                const permitsRes = await supaFetch('permits', 'GET', null, '?select=data');
-                if (permitsRes) permits = permitsRes.map(r => r.data);
+  const toolbar = (
+    <div className="fp-toolbar">
+      <button className="btn btn-light btn-icon" onClick={()=>setZoom(z=>Math.min(5,z+0.2))}>＋</button>
+      <button className="btn btn-light btn-icon" onClick={()=>setZoom(z=>Math.max(0.4,z-0.2))}>－</button>
+      <button className="btn btn-light btn-sm" onClick={reset}>Reset</button>
+      <span className="hint" style={{marginLeft:4}}>Zoom {Math.round(zoom*100)}% · scroll to zoom, drag to pan</span>
+      <div style={{marginLeft:'auto'}}>
+        <button className="btn btn-ghost btn-sm" onClick={()=>setFullscreen(f=>!f)}>{fullscreen?'✕ Exit fullscreen':'⛶ Fullscreen'}</button>
+      </div>
+    </div>
+  );
 
-                // Load floor images
-                const imgRes = await supaFetch('floor_images', 'GET', null, '?select=area,image');
-                if (imgRes) { floorImages = {}; imgRes.forEach(r => floorImages[r.area] = r.image); }
+  if(fullscreen){
+    return (
+      <div className="fs-overlay">
+        <div style={{background:'#fff'}}>{toolbar}</div>
+        {stage}
+      </div>
+    );
+  }
+  return <div className="fp-wrap">{toolbar}{stage}</div>;
+}
 
-                dbReady = true;
-            } catch (e) {
-                console.error('Failed to load from Supabase, using localStorage fallback:', e);
-                areas = JSON.parse(localStorage.getItem('ptw_areas')) || ['P1', 'P2', 'P3', 'Yard', 'Dach', 'General'];
-                permits = JSON.parse(localStorage.getItem('ptw_permits_v2')) || [];
-                floorImages = JSON.parse(localStorage.getItem('ptw_floor_images')) || {};
-            }
-            renderSidebar();
-            if (currentArea === 'Overview') renderGrid();
-            else renderDetail(currentArea);
-        }
+/* ============================= Permit detail popup ============================= */
+function PermitDetail({ p, onClose, onEdit }){
+  const ex=expiryState(p);
+  const Row=({k,v})=>(<><div className="k">{k}</div><div>{v||'—'}</div></>);
+  const Chips=({arr,other})=>(
+    <div className="chip-row">
+      {(arr||[]).map(x=><span key={x} className="chip">{x}</span>)}
+      {other && <span className="chip">{other}</span>}
+      {!(arr&&arr.length)&&!other && <span style={{color:'var(--muted)',fontSize:13}}>None</span>}
+    </div>
+  );
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <h3>{p.permitNo} <span className={'pill st-'+p.status} style={{marginLeft:6}}>{p.status}</span>
+              {ex==='expired'&&<span className="pill exp-pill" style={{marginLeft:6}}>Expired</span>}
+              {ex==='expiring'&&<span className="pill warn-pill" style={{marginLeft:6}}>Expiring soon</span>}
+            </h3>
+          </div>
+          <button className="x" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <div className="section">
+            <div className="section-title">👷 Contractor</div>
+            <div className="kv">
+              <Row k="Name" v={p.contractorName} /><Row k="Company" v={p.company} />
+              <Row k="Contact" v={p.contact} /><Row k="Email" v={p.email} />
+              <Row k="Workers" v={p.workers} />
+            </div>
+          </div>
+          <div className="section">
+            <div className="section-title">🛠️ Work Details</div>
+            <div className="kv">
+              <Row k="Work Type" v={p.workType} /><Row k="Location" v={p.location} />
+              <Row k="Start" v={fmtDate(p.startDate)+' '+(p.startTime||'')} />
+              <Row k="End" v={fmtDate(p.endDate)+' '+(p.endTime||'')} />
+              <Row k="Description" v={p.description} />
+            </div>
+          </div>
+          <div className="section">
+            <div className="section-title">⚠️ Hazards</div><Chips arr={p.hazards} other={p.hazardsOther} />
+          </div>
+          <div className="section">
+            <div className="section-title">🛡️ Safety Controls</div><Chips arr={p.controls} other={p.controlsOther} />
+          </div>
+          <div className="section">
+            <div className="section-title">🥽 PPE</div><Chips arr={p.ppe} other={p.ppeOther} />
+          </div>
+          <div className="section">
+            <div className="section-title">✅ Authorization</div>
+            <div className="kv">
+              <Row k="Supervisor" v={p.supervisor} /><Row k="Signature" v={p.supervisorSig} />
+              <Row k="Safety Officer" v={p.safetyOfficer} />
+              <Row k="Special Instructions" v={p.specialInstructions} />
+              <Row k="Emergency Procedures" v={p.emergencyProc} />
+            </div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-light" onClick={onClose}>Close</button>
+          <button className="btn btn-primary" onClick={()=>onEdit(p)}>Edit</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        // Save to Supabase
-        async function save() {
-            // Always save locally as backup
-            localStorage.setItem('ptw_areas', JSON.stringify(areas));
-            localStorage.setItem('ptw_permits_v2', JSON.stringify(permits));
-            localStorage.setItem('ptw_floor_images', JSON.stringify(floorImages));
+/* ============================= Contractor card ============================= */
+function ContractorCard({ p, onOpen, onEdit, onDelete }){
+  const ex=expiryState(p);
+  return (
+    <div className="ccard" onClick={()=>onOpen(p)}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+        <div><h4>{p.contractorName}</h4><div className="co">{p.company||'—'}</div></div>
+        <span className={'pill st-'+p.status}>{p.status}</span>
+      </div>
+      <div className="meta">
+        <span>🛠️ {p.workType} · {p.location||'—'}</span>
+        <span>📅 {fmtDate(p.startDate)} → {fmtDate(p.endDate)}</span>
+        <span>👥 {p.workers} worker(s) · 📞 {p.contact||'—'}</span>
+      </div>
+      {ex==='expired' && <div className="pill exp-pill" style={{marginBottom:8}}>⚠ Permit expired</div>}
+      {ex==='expiring' && <div className="pill warn-pill" style={{marginBottom:8}}>⏳ Expiring within 24h</div>}
+      <div className="foot">
+        <span className="pill" style={{background:'#eef2ff',color:'var(--purple-dark)'}}>{p.permitNo}</span>
+        <div className="card-actions" onClick={e=>e.stopPropagation()}>
+          <button className="btn btn-ghost btn-sm" onClick={()=>onEdit(p)}>Edit</button>
+          <button className="btn btn-danger btn-sm" onClick={()=>onDelete(p)}>Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            if (!dbReady) return;
+/* ============================= App ============================= */
+function App(){
+  const [permits,setPermits]=useState(store.loadPermits());
+  const [areas,setAreas]=useState(store.loadAreas());
+  const [selected,setSelected]=useState('Overview');
+  const [expanded,setExpanded]=useState({});
+  const [showForm,setShowForm]=useState(false);
+  const [editing,setEditing]=useState(null);
+  const [showSettings,setShowSettings]=useState(false);
+  const [detail,setDetail]=useState(null);
+  const [search,setSearch]=useState('');
+  const [filter,setFilter]=useState('');
+  const [fullscreen,setFullscreen]=useState(false);
+  const [toast,toastNode]=useToast();
 
-            // Save areas config
-            await supaFetch('config', 'POST', { key: 'areas', value: areas }, '?on_conflict=key');
+  useEffect(()=>{ store.savePermits(permits); },[permits]);
 
-            // Save permits (upsert all)
-            for (const p of permits) {
-                await supaFetch('permits', 'POST', { id: p.id, data: p }, '?on_conflict=id');
-            }
-        }
+  const topAreas = areas.filter(a=>!a.parent);
+  const subAreas = (name)=>areas.filter(a=>a.parent===name);
 
-        async function saveAreas() {
-            localStorage.setItem('ptw_areas', JSON.stringify(areas));
-            if (!dbReady) return;
-            await supaFetch('config', 'POST', { key: 'areas', value: areas }, '', true);
-        }
+  const permitsInArea=(name)=>permits.filter(p=>p.location===name || subAreas(name).some(s=>s.name===p.location));
+  const workersInArea=(name)=>permitsInArea(name).reduce((s,p)=>s+(parseInt(p.workers)||0),0);
 
-        async function savePermit_db(permit) {
-            localStorage.setItem('ptw_permits_v2', JSON.stringify(permits));
-            if (!dbReady) return;
-            await supaFetch('permits', 'POST', { id: permit.id, data: permit }, '', true);
-        }
+  // Save / delete
+  const savePermit=(p)=>{
+    const now=nowISO();
+    setPermits(prev=>{
+      const exists=prev.some(x=>x.id===p.id);
+      if(exists) return prev.map(x=>x.id===p.id?{...p,updatedAt:now}:x);
+      const withNo={...p, permitNo:p.permitNo||genPermitNo(prev), createdAt:now, updatedAt:now};
+      return [...prev,withNo];
+    });
+    setShowForm(false); setEditing(null); toast('Permit saved');
+  };
+  const delPermit=(p)=>{ if(!confirm('Delete permit '+p.permitNo+'?')) return; setPermits(prev=>prev.filter(x=>x.id!==p.id)); toast('Permit deleted'); };
+  const openNew=()=>{ setEditing(newPermit(selected)); setShowForm(true); };
+  const openEdit=(p)=>{ setDetail(null); setEditing(p); setShowForm(true); };
 
-        async function deletePermit_db(id) {
-            localStorage.setItem('ptw_permits_v2', JSON.stringify(permits));
-            if (!dbReady) return;
-            await supaFetch('permits', 'DELETE', null, `?id=eq.${id}`);
-        }
+  // Stats
+  const total=permits.length;
+  const workersOnSite=permits.filter(p=>['Approved','Active'].includes(p.status)).reduce((s,p)=>s+(parseInt(p.workers)||0),0);
+  const activeCount=permits.filter(p=>p.status==='Active').length;
+  const expCount=permits.filter(p=>['expired','expiring'].includes(expiryState(p))).length;
 
-        async function saveFloorImage(area) {
-            localStorage.setItem('ptw_floor_images', JSON.stringify(floorImages));
-            if (!dbReady) return;
-            if (floorImages[area]) {
-                await supaFetch('floor_images', 'POST', { area: area, image: floorImages[area] }, '', true);
-            } else {
-                await supaFetch('floor_images', 'DELETE', null, `?area=eq.${area}`);
-            }
-        }
+  // Search + filter (overview)
+  const filtered=useMemo(()=>{
+    let arr=permits;
+    if(search.trim()){
+      const q=search.toLowerCase();
+      arr=arr.filter(p=>[p.contractorName,p.company,p.workType,p.location,p.permitNo].some(v=>(v||'').toLowerCase().includes(q)));
+    }
+    if(filter){
+      if(filter==='Expiring') arr=arr.filter(p=>expiryState(p)==='expiring');
+      else if(filter==='Expired') arr=arr.filter(p=>expiryState(p)==='expired');
+      else arr=arr.filter(p=>p.status===filter);
+    }
+    return arr;
+  },[permits,search,filter]);
 
-        // === SIDEBAR ===
-        function renderSidebar() {
-            const counts = {};
-            areas.forEach(a => counts[a] = permits.filter(p => p.workLocation === a).length);
-            const total = permits.length;
+  const expiredList=permits.filter(p=>expiryState(p)==='expired');
+  const expiringList=permits.filter(p=>expiryState(p)==='expiring');
 
-            let html = `<div class="sidebar-item ${currentArea === 'Overview' ? 'active' : ''}" onclick="selectArea('Overview')">
-                <span><i class="fas fa-th-large"></i>&nbsp; Overview</span><span class="sidebar-count">${total}</span></div>`;
+  const NavItem=({name,count,active,onClick,children,caret,onCaret})=>(
+    <div className={'nav-item'+(active?' active':'')} onClick={onClick}>
+      <span style={{display:'flex',alignItems:'center',gap:6}}>
+        {caret!=null && <span className={'nav-caret'+(caret?' open':'')} onClick={e=>{e.stopPropagation();onCaret();}}>▶</span>}
+        {name}
+      </span>
+      {count!=null && <span className="badge">{count}</span>}
+    </div>
+  );
 
-            areas.forEach(a => {
-                html += `<div class="sidebar-item ${currentArea === a ? 'active' : ''}" onclick="selectArea('${a}')">
-                    <span>${a}</span><span class="sidebar-count">${counts[a] || 0}</span></div>`;
-            });
-
-            document.getElementById('sidebarItems').innerHTML = html;
-        }
-
-        function selectArea(area) {
-            currentArea = area;
-            renderSidebar();
-            if (area === 'Overview') renderGrid();
-            else renderDetail(area);
-        }
-
-        // === GRID VIEW ===
-        function renderGrid() {
-            document.getElementById('detailView').classList.remove('active');
-            const grid = document.getElementById('gridView');
-            grid.style.display = 'grid';
-
-            grid.innerHTML = areas.map(area => {
-                const areaPermits = permits.filter(p => p.workLocation === area);
-                const img = floorImages[area];
-                return `<div class="area-card" onclick="selectArea('${area}')">
-                    <div class="area-card-image">
-                        ${img ? `<img src="${img}" alt="${area}">` : '<span class="no-image"><i class="fas fa-map"></i>&nbsp; No floor plan</span>'}
-                        <span class="area-card-badge">${area}</span>
-                        ${areaPermits.length > 0 ? `<span class="area-card-count">${areaPermits.length} jobs</span>` : ''}
-                        ${areaPermits.filter(p => p.pinX).map(p => `<div class="pin-marker" style="left:${p.pinX}%;top:${p.pinY}%"><span class="pin-label">${p.contractorName}</span></div>`).join('')}
-                    </div>
-                    <div class="area-card-footer"><h3>${area}</h3><span>${areaPermits.length} contractor${areaPermits.length !== 1 ? 's' : ''}</span></div>
-                </div>`;
-            }).join('');
-        }
-
-        // === DETAIL VIEW ===
-        function renderDetail(area) {
-            document.getElementById('gridView').style.display = 'none';
-            const detail = document.getElementById('detailView');
-            detail.classList.add('active');
-
-            const areaPermits = permits.filter(p => p.workLocation === area);
-            const img = floorImages[area];
-
-            detail.innerHTML = `
-                <div class="detail-header">
-                    <h2>${area}</h2>
-                    <div class="detail-controls">
-                        <button class="detail-btn" onclick="selectArea('Overview')" title="Back"><i class="fas fa-arrow-left"></i></button>
-                        <button class="detail-btn" onclick="zoomIn()" title="Zoom In"><i class="fas fa-search-plus"></i></button>
-                        <button class="detail-btn" onclick="zoomOut()" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
-                        <button class="detail-btn" onclick="resetZoom()" title="Reset"><i class="fas fa-undo"></i></button>
-                        <button class="detail-btn" onclick="toggleFullscreen()" title="Fullscreen"><i class="fas fa-expand"></i></button>
-                    </div>
+  return (
+    <div className="app">
+      {/* Sidebar */}
+      <div className="sidebar">
+        <div className="brand">PTW</div>
+        <NavItem name="Overview" count={total} active={selected==='Overview'} onClick={()=>{setSelected('Overview');setFullscreen(false);}} />
+        <div style={{fontSize:11,fontWeight:800,opacity:.6,padding:'14px 12px 6px',textTransform:'uppercase',letterSpacing:.6}}>Areas</div>
+        {topAreas.map(a=>{
+          const subs=subAreas(a.name);
+          return (
+            <div key={a.name}>
+              <NavItem name={a.name} count={workersInArea(a.name)} active={selected===a.name}
+                caret={subs.length? !!expanded[a.name]: null}
+                onCaret={()=>setExpanded(e=>({...e,[a.name]:!e[a.name]}))}
+                onClick={()=>{setSelected(a.name);setFullscreen(false);}} />
+              {subs.length>0 && expanded[a.name] && (
+                <div className="nav-sub">
+                  {subs.map(s=>(
+                    <NavItem key={s.name} name={s.name} count={workersInArea(s.name)} active={selected===s.name}
+                      onClick={()=>{setSelected(s.name);setFullscreen(false);}} />
+                  ))}
                 </div>
-                <div class="floor-container" id="floorContainer">
-                    ${img ? `<img src="${img}" id="floorImg" alt="${area} floor plan">` : '<div class="no-image"><i class="fas fa-map" style="font-size:2rem;margin-right:8px;"></i> No floor plan uploaded — add one in Settings</div>'}
-                    ${areaPermits.filter(p => p.pinX).map(p => `<div class="pin-marker" style="left:${p.pinX}%;top:${p.pinY}%" onclick="showPopup('${p.id}')"><span class="pin-label">${p.contractorName}</span></div>`).join('')}
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Main */}
+      <div className="main">
+        <div className="header">
+          <div>
+            <h1>Contractor Management</h1>
+            <div className="sub">Permit to Work System{selected!=='Overview'?' · '+selected:''}</div>
+          </div>
+          <div className="header-actions">
+            <button className="btn btn-light btn-icon" title="Settings" onClick={()=>setShowSettings(true)}>⚙️</button>
+            <button className="btn btn-primary" onClick={openNew}>+ New Job</button>
+          </div>
+        </div>
+
+        <div className="content">
+          {/* Expiry banner */}
+          {(expiredList.length>0) && (
+            <div className="banner red" onClick={()=>{setSelected('Overview');setFilter('Expired');}}>
+              ⛔ {expiredList.length} permit(s) have expired — click to review.
+            </div>
+          )}
+          {(expiringList.length>0) && (
+            <div className="banner" onClick={()=>{setSelected('Overview');setFilter('Expiring');}}>
+              ⏳ {expiringList.length} permit(s) expiring within 24 hours — click to review.
+            </div>
+          )}
+
+          {selected==='Overview' ? (
+            <>
+              {/* Stats */}
+              <div className="section grid stats-row">
+                <div className="stat"><div className="n">{total}</div><div className="l">Total Jobs</div></div>
+                <div className="stat"><div className="n">{workersOnSite}</div><div className="l">Workers On-Site</div></div>
+                <div className="stat"><div className="n">{activeCount}</div><div className="l">Active Permits</div></div>
+                <div className="stat warn"><div className="n">{expCount}</div><div className="l">Expiring / Expired</div></div>
+                <div className="stat"><div className="n">{topAreas.length}</div><div className="l">Areas</div></div>
+              </div>
+
+              {/* Analytics */}
+              <Analytics permits={permits} areas={areas} />
+
+              {/* Toolbar */}
+              <div className="toolbar">
+                <div className="search">
+                  <span className="ico">🔍</span>
+                  <input placeholder="Search name, company, work type, area, permit #…" value={search} onChange={e=>setSearch(e.target.value)} />
                 </div>
-                <div class="contractor-list">
-                    <h3>Contractors (${areaPermits.length})</h3>
-                    <div class="contractor-grid">
-                        ${areaPermits.length === 0 ? '<p style="color:#9ca3af;font-size:0.85rem;">No contractors in this area</p>' :
-                        areaPermits.map(p => `<div class="contractor-card">
-                            <h4>${p.contractorName}</h4>
-                            <div class="cc-company">${p.company || 'N/A'}</div>
-                            <div class="cc-detail"><i class="fas fa-briefcase"></i> ${p.workType || 'N/A'}</div>
-                            <div class="cc-detail"><i class="fas fa-calendar"></i> ${p.startDate || ''} — ${p.endDate || ''}</div>
-                            <div class="cc-detail"><i class="fas fa-users"></i> ${p.numWorkers || 1} worker${(p.numWorkers || 1) > 1 ? 's' : ''}</div>
-                            <div class="cc-detail"><i class="fas fa-phone"></i> ${p.contact || 'N/A'}</div>
-                            <div class="cc-detail"><i class="fas fa-info-circle"></i> ${(p.description || '').substring(0, 60)}${(p.description || '').length > 60 ? '...' : ''}</div>
-                            <div class="cc-actions">
-                                <button class="cc-btn" onclick="editPermit('${p.id}')"><i class="fas fa-edit"></i> Edit</button>
-                                <button class="cc-btn delete" onclick="deletePermit('${p.id}')"><i class="fas fa-trash"></i> Delete</button>
-                            </div>
-                        </div>`).join('')}
+                <button className="btn btn-ghost" onClick={()=>exportCSV(filter||search?filtered:permits, 'ptw-permits.csv')}>⬇ Export CSV</button>
+              </div>
+              <div className="filters" style={{marginBottom:16}}>
+                {['Active','Draft','Submitted','Approved','Expiring','Expired','Closed'].map(f=>(
+                  <div key={f} className={'fpill'+(filter===f?' on':'')} onClick={()=>setFilter(filter===f?'':f)}>{f}</div>
+                ))}
+                {filter && <div className="fpill" onClick={()=>setFilter('')}>✕ Clear</div>}
+              </div>
+
+              {/* Filtered grid OR table */}
+              {(filter||search.trim()) ? (
+                <div className="section">
+                  <div className="section-title">Results ({filtered.length})</div>
+                  {filtered.length? (
+                    <div className="grid cards-grid">
+                      {filtered.map(p=><ContractorCard key={p.id} p={p} onOpen={setDetail} onEdit={openEdit} onDelete={delPermit} />)}
                     </div>
-                </div>`;
-        }
-
-        let zoomLevel = 1;
-        function zoomIn() { zoomLevel = Math.min(zoomLevel + 0.3, 3); applyZoom(); }
-        function zoomOut() { zoomLevel = Math.max(zoomLevel - 0.3, 0.5); applyZoom(); }
-        function resetZoom() { zoomLevel = 1; applyZoom(); }
-        function applyZoom() { const img = document.getElementById('floorImg'); if (img) img.style.transform = `scale(${zoomLevel})`; }
-        function toggleFullscreen() { const el = document.getElementById('floorContainer'); if (el.requestFullscreen) el.requestFullscreen(); }
-
-        // === POPUP ===
-        function showPopup(id) {
-            const p = permits.find(x => x.id === id);
-            if (!p) return;
-            const popup = document.getElementById('detailPopup');
-            popup.innerHTML = `
-                <h3>${p.contractorName} <span class="modal-close" onclick="closePopup()"><i class="fas fa-times"></i></span></h3>
-                <div class="dp-row"><span class="dp-label">Company</span><span class="dp-value">${p.company || 'N/A'}</span></div>
-                <div class="dp-row"><span class="dp-label">Contact</span><span class="dp-value">${p.contact || 'N/A'}</span></div>
-                <div class="dp-row"><span class="dp-label">Email</span><span class="dp-value">${p.email || 'N/A'}</span></div>
-                <div class="dp-row"><span class="dp-label">Workers</span><span class="dp-value">${p.numWorkers || 1} person${(p.numWorkers || 1) > 1 ? 's' : ''}</span></div>
-                <div class="dp-row"><span class="dp-label">Work Type</span><span class="dp-value">${p.workType || 'N/A'}</span></div>
-                <div class="dp-row"><span class="dp-label">Location</span><span class="dp-value">${p.workLocation || 'N/A'}</span></div>
-                <div class="dp-row"><span class="dp-label">Description</span><span class="dp-value">${p.description || 'N/A'}</span></div>
-                <div class="dp-row"><span class="dp-label">Dates</span><span class="dp-value">${p.startDate} — ${p.endDate}</span></div>
-                <div class="dp-row"><span class="dp-label">Times</span><span class="dp-value">${p.startTime} — ${p.endTime}</span></div>
-                <div class="dp-row"><span class="dp-label">Status</span><span class="dp-value">${p.status || 'Draft'}</span></div>
-                <div class="dp-row"><span class="dp-label">Permit #</span><span class="dp-value">${p.id}</span></div>
-                <div class="dp-row"><span class="dp-label">Hazards</span><span class="dp-value">${(p.hazards || []).join(', ') || 'None'}</span></div>
-                <div class="dp-row"><span class="dp-label">Supervisor</span><span class="dp-value">${p.supervisor || 'N/A'}</span></div>
-                <div class="dp-actions">
-                    <button class="dp-btn edit" onclick="closePopup();editPermit('${p.id}')">Edit</button>
-                    <button class="dp-btn delete" onclick="closePopup();deletePermit('${p.id}')">Delete</button>
-                </div>`;
-            popup.classList.add('open');
-            document.getElementById('popupOverlay').classList.add('open');
-        }
-
-        function closePopup() {
-            document.getElementById('detailPopup').classList.remove('open');
-            document.getElementById('popupOverlay').classList.remove('open');
-        }
-
-        // === PERMIT FORM ===
-        const tabNames = ['General Info', 'Work Details', 'Floor Plan', 'Hazards', 'Safety Controls', 'PPE', 'Authorization'];
-        let activeTab = 0;
-
-        const hazardOptions = ['Working at Height', 'Hot Work', 'Confined Space', 'Electrical', 'Excavation', 'Chemical Exposure', 'Noise', 'Lifting/Crane', 'Radiation', 'Asbestos', 'Fire Risk', 'Falling Objects'];
-        const safetyOptions = ['Area Barricaded', 'Fire Watch', 'Gas Testing', 'Lockout/Tagout', 'Ventilation', 'Spotter Assigned', 'Rescue Plan', 'Communication Plan', 'Tool Inspection', 'Ground Fault Protection', 'Dust Suppression', 'Traffic Control'];
-        const ppeOptions = ['Hard Hat', 'Safety Glasses', 'Steel Toe Boots', 'High-Vis Vest', 'Gloves', 'Hearing Protection', 'Respirator', 'Fall Harness', 'Face Shield', 'Fire Resistant Clothing', 'Chemical Suit', 'Safety Goggles'];
-
-        let formData = {};
-
-        function openPermitForm(id) {
-            editingPermitId = id || null;
-            if (id) {
-                formData = { ...permits.find(p => p.id === id) };
-                document.getElementById('permitFormTitle').textContent = 'Edit Permit';
-            } else {
-                formData = { id: 'PTW-' + String(permits.length + 1).padStart(3, '0'), hazards: [], safetyControls: [], ppe: [], status: 'Draft' };
-                document.getElementById('permitFormTitle').textContent = 'New Permit to Work';
-            }
-            pinPosition = formData.pinX ? { x: formData.pinX, y: formData.pinY } : null;
-            activeTab = 0;
-            renderFormTabs();
-            document.getElementById('permitModal').classList.add('open');
-        }
-
-        function closePermitForm() { document.getElementById('permitModal').classList.remove('open'); }
-
-        function renderFormTabs() {
-            document.getElementById('formTabs').innerHTML = tabNames.map((t, i) =>
-                `<button class="tab ${i === activeTab ? 'active' : ''}" onclick="switchTab(${i})">${t}</button>`).join('');
-            renderTabContent();
-        }
-
-        function switchTab(i) { activeTab = i; renderFormTabs(); }
-
-        function renderTabContent() {
-            const container = document.getElementById('formTabContent');
-            let html = '';
-
-            switch (activeTab) {
-                case 0: html = `<div class="form-grid">
-                    <div class="form-group"><label>Contractor Name</label><input type="text" id="f_name" value="${formData.contractorName || ''}" onchange="formData.contractorName=this.value"></div>
-                    <div class="form-group"><label>Company</label><input type="text" id="f_company" value="${formData.company || ''}" onchange="formData.company=this.value"></div>
-                    <div class="form-group"><label>Contact Number</label><input type="text" id="f_contact" value="${formData.contact || ''}" onchange="formData.contact=this.value"></div>
-                    <div class="form-group"><label>Email</label><input type="email" id="f_email" value="${formData.email || ''}" onchange="formData.email=this.value"></div>
-                    <div class="form-group"><label>Number of Workers</label><input type="number" min="1" value="${formData.numWorkers || 1}" onchange="formData.numWorkers=parseInt(this.value)"></div>
-                </div>`; break;
-
-                case 1: html = `<div class="form-grid">
-                    <div class="form-group"><label>Work Type</label><select onchange="formData.workType=this.value"><option value="">Select</option>
-                        ${['Welding', 'Electrical', 'Plumbing', 'Construction', 'Painting', 'Maintenance', 'Cleaning', 'Installation', 'Inspection', 'Demolition', 'Other'].map(o => `<option ${formData.workType === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div>
-                    <div class="form-group"><label>Work Location</label><select onchange="formData.workLocation=this.value;renderTabContent()"><option value="">Select area</option>
-                        ${areas.map(a => `<option ${formData.workLocation === a ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
-                    <div class="form-group"><label>Start Date</label><input type="date" value="${formData.startDate || ''}" onchange="formData.startDate=this.value"></div>
-                    <div class="form-group"><label>End Date</label><input type="date" value="${formData.endDate || ''}" onchange="formData.endDate=this.value"></div>
-                    <div class="form-group"><label>Start Time</label><input type="time" value="${formData.startTime || ''}" onchange="formData.startTime=this.value"></div>
-                    <div class="form-group"><label>End Time</label><input type="time" value="${formData.endTime || ''}" onchange="formData.endTime=this.value"></div>
-                    <div class="form-group full"><label>Work Description</label><textarea onchange="formData.description=this.value">${formData.description || ''}</textarea></div>
-                </div>`; break;
-
-                case 2:
-                    const loc = formData.workLocation;
-                    const floorImg = loc ? floorImages[loc] : null;
-                    html = `<p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">Click on the floor plan to mark the exact work location.</p>
-                    <div class="pin-selector" id="pinSelector" onclick="placePin(event)">
-                        ${floorImg ? `<img src="${floorImg}" alt="Floor plan">` : '<span style="color:#9ca3af;">Select a Work Location in "Work Details" tab first, and upload a floor plan in Settings.</span>'}
-                        ${pinPosition ? `<div class="placed-pin" style="left:${pinPosition.x}%;top:${pinPosition.y}%"></div>` : ''}
-                    </div>
-                    <p class="pin-hint">${pinPosition ? '✓ Pin placed — click elsewhere to reposition' : 'Click on the image to place the contractor pin'}</p>`; break;
-
-                case 3: html = renderCheckboxGrid('hazards', hazardOptions); break;
-                case 4: html = renderCheckboxGrid('safetyControls', safetyOptions); break;
-                case 5: html = renderCheckboxGrid('ppe', ppeOptions); break;
-
-                case 6: html = `<div class="form-grid">
-                    <div class="form-group"><label>Supervisor Name</label><input type="text" value="${formData.supervisor || ''}" onchange="formData.supervisor=this.value"></div>
-                    <div class="form-group"><label>Safety Officer</label><input type="text" value="${formData.safetyOfficer || ''}" onchange="formData.safetyOfficer=this.value"></div>
-                    <div class="form-group full"><label>Special Instructions</label><textarea onchange="formData.specialInstructions=this.value">${formData.specialInstructions || ''}</textarea></div>
-                    <div class="form-group full"><label>Emergency Procedures</label><textarea onchange="formData.emergencyProcedures=this.value">${formData.emergencyProcedures || ''}</textarea></div>
-                    <div class="form-group"><label>Permit Status</label><select onchange="formData.status=this.value">
-                        ${['Draft', 'Submitted', 'Approved', 'Active', 'Closed'].map(s => `<option ${formData.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
-                </div>`; break;
-            }
-            container.innerHTML = html;
-        }
-
-        function renderCheckboxGrid(field, options) {
-            return `<div class="checkbox-grid">${options.map(opt => {
-                const checked = (formData[field] || []).includes(opt);
-                return `<label class="checkbox-item ${checked ? 'checked' : ''}">
-                    <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleCheckbox('${field}', '${opt}', this.checked)"> ${opt}</label>`;
-            }).join('')}</div>`;
-        }
-
-        function toggleCheckbox(field, value, checked) {
-            if (!formData[field]) formData[field] = [];
-            if (checked) formData[field].push(value);
-            else formData[field] = formData[field].filter(v => v !== value);
-            renderTabContent();
-        }
-
-        function placePin(e) {
-            const rect = document.getElementById('pinSelector').getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            pinPosition = { x: x.toFixed(2), y: y.toFixed(2) };
-            formData.pinX = pinPosition.x;
-            formData.pinY = pinPosition.y;
-            renderTabContent();
-        }
-
-        async function savePermit() {
-            if (!formData.contractorName) { showToast('Please enter contractor name'); return; }
-            if (!formData.workLocation) { showToast('Please select work location'); return; }
-
-            if (editingPermitId) {
-                const idx = permits.findIndex(p => p.id === editingPermitId);
-                if (idx >= 0) permits[idx] = formData;
-            } else {
-                formData.id = 'PTW-' + String(permits.length + 1).padStart(3, '0');
-                permits.push(formData);
-            }
-
-            await savePermit_db(formData);
-            closePermitForm();
-            selectArea(formData.workLocation);
-            showToast(`Permit ${formData.id} saved`);
-        }
-
-        function editPermit(id) { openPermitForm(id); }
-
-        async function deletePermit(id) {
-            if (confirm(`Delete permit ${id}?`)) {
-                permits = permits.filter(p => p.id !== id);
-                await deletePermit_db(id);
-                selectArea(currentArea);
-                showToast(`Permit ${id} deleted`);
-            }
-        }
-
-        // === SETTINGS ===
-        function openSettings() {
-            renderSettings();
-            document.getElementById('settingsModal').classList.add('open');
-        }
-
-        function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
-
-        function renderSettings() {
-            document.getElementById('settingsBody').innerHTML = `
-                <h3 style="font-size:0.95rem;margin-bottom:14px;">Manage Areas & Floor Plans</h3>
-                <div class="settings-areas">${areas.map((a, i) => `
-                    <div class="settings-area-item">
-                        <span>${a}</span>
-                        ${floorImages[a] ? `<img src="${floorImages[a]}" class="preview-img">` : ''}
-                        <button onclick="uploadFloorPlan('${a}')"><i class="fas fa-upload"></i> ${floorImages[a] ? 'Change' : 'Upload'}</button>
-                        ${floorImages[a] ? `<button onclick="removeFloorPlan('${a}')" class="remove-btn"><i class="fas fa-trash"></i></button>` : ''}
-                        <button onclick="removeArea(${i})" class="remove-btn"><i class="fas fa-times"></i></button>
-                    </div>`).join('')}
+                  ):<div className="empty">No permits match your search/filter.</div>}
                 </div>
-                <div class="add-area-row">
-                    <input type="text" id="newAreaName" placeholder="New area name...">
-                    <button onclick="addArea()"><i class="fas fa-plus"></i> Add</button>
+              ) : (
+                <div className="section">
+                  <div className="section-title">📋 All Permits</div>
+                  <PTWTable permits={permits} onEdit={openEdit} onDelete={delPermit} onOpen={setDetail} />
                 </div>
-                <div id="savingIndicator"></div>`;
-        }
+              )}
 
-        async function addArea() {
-            const name = document.getElementById('newAreaName').value.trim();
-            if (!name) return;
-            if (areas.includes(name)) { showToast('Area already exists'); return; }
-            areas.push(name);
-            await saveAreas();
-            renderSettings();
-            renderSidebar();
-            showToast(`Area "${name}" added`);
-        }
+              {/* Area grid */}
+              <div className="section">
+                <div className="section-title">🗺️ Areas</div>
+                <div className="grid area-grid">
+                  {topAreas.map(a=>{
+                    const img=imageStorage.get(a.name);
+                    const inArea=permitsInArea(a.name).filter(p=>p.floors&&p.floors[0]&&p.floors[0].x!=null);
+                    return (
+                      <div key={a.name} className="acard" onClick={()=>setSelected(a.name)}>
+                        <div className="thumb" style={img?{backgroundImage:`url(${img})`}:null}>
+                          {!img && '🗺️ No floor plan'}
+                          {img && inArea.map(p=><div key={p.id} className="mini-pin" style={{left:p.floors[0].x+'%',top:p.floors[0].y+'%'}} />)}
+                        </div>
+                        <div className="abody">
+                          <h4>{a.name}</h4>
+                          <div className="counts"><span>📋 {permitsInArea(a.name).length} jobs</span><span>👥 {workersInArea(a.name)} workers</span></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          ) : (
+            /* ===== Area detail ===== */
+            <>
+              <div className="section">
+                <div className="section-title">🗺️ {selected} — Floor Plan</div>
+                <FloorPlan area={selected} permits={permitsInArea(selected)} onOpenPermit={setDetail}
+                  fullscreen={fullscreen} setFullscreen={setFullscreen} />
+              </div>
+              <div className="section">
+                <div className="section-title">👷 Contractors in {selected} ({permitsInArea(selected).length})</div>
+                {permitsInArea(selected).length? (
+                  <div className="grid cards-grid">
+                    {permitsInArea(selected).map(p=><ContractorCard key={p.id} p={p} onOpen={setDetail} onEdit={openEdit} onDelete={delPermit} />)}
+                  </div>
+                ):<div className="empty">No contractors assigned to {selected} yet.</div>}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
-        async function removeArea(idx) {
-            const name = areas[idx];
-            if (confirm(`Remove area "${name}"?`)) {
-                areas.splice(idx, 1);
-                delete floorImages[name];
-                await saveAreas();
-                await saveFloorImage(name);
-                renderSettings();
-                renderSidebar();
-                if (currentArea === name) selectArea('Overview');
-            }
-        }
+      {/* Modals */}
+      {showForm && editing && <PTWForm initial={editing} areas={areas} onSave={savePermit} onClose={()=>{setShowForm(false);setEditing(null);}} toast={toast} />}
+      {showSettings && <Settings areas={areas} setAreas={setAreas} onClose={()=>setShowSettings(false)} toast={toast} />}
+      {detail && <PermitDetail p={detail} onClose={()=>setDetail(null)} onEdit={openEdit} />}
+      {toastNode}
+    </div>
+  );
+}
 
-        function uploadFloorPlan(area) {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                document.getElementById('savingIndicator').innerHTML = '<span class="saving-indicator">⏳ Saving...</span>';
-                const reader = new FileReader();
-                reader.onload = async (ev) => {
-                    floorImages[area] = ev.target.result;
-                    await saveFloorImage(area);
-                    renderSettings();
-                    renderSidebar();
-                    if (currentArea === area) renderDetail(area);
-                    else if (currentArea === 'Overview') renderGrid();
-                    showToast(`Floor plan uploaded for ${area}`);
-                };
-                reader.readAsDataURL(file);
-            };
-            input.click();
-        }
-
-        async function removeFloorPlan(area) {
-            delete floorImages[area];
-            await saveFloorImage(area);
-            renderSettings();
-            showToast(`Floor plan removed for ${area}`);
-        }
-
-        // === TOAST ===
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.className = 'toast show';
-            setTimeout(() => { t.className = 'toast'; }, 3000);
-        }
-
-        // === LOGIN ===
-        const VALID_USER = 'amndlal';
-        const VALID_PASS = 'ptw2026';
-
-        function handleLogin(e) {
-            e.preventDefault();
-            const user = document.getElementById('loginUser').value;
-            const pass = document.getElementById('loginPass').value;
-
-            if (user === VALID_USER && pass === VALID_PASS) {
-                document.getElementById('loginScreen').classList.add('hidden');
-                sessionStorage.setItem('ptw_logged_in', 'true');
-            } else {
-                document.getElementById('loginError').classList.add('show');
-                setTimeout(() => document.getElementById('loginError').classList.remove('show'), 3000);
-            }
-        }
-
-        // Check if already logged in this session
-        if (sessionStorage.getItem('ptw_logged_in') === 'true') {
-            document.getElementById('loginScreen').classList.add('hidden');
-        }
-
-        // === INIT ===
-        loadData();
-    </script>
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
 </body>
 </html>

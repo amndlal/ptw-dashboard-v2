@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contractor Management / Permit to Work</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: #1a1a2e; display: flex; height: 100vh; overflow: hidden; }
+
+        /* Login Screen */
+        .login-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #312e81 100%);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-screen.hidden { display: none; }
+
+        .login-box {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 90%;
+            max-width: 380px;
+            text-align: center;
+        }
+
+        .login-box .login-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .login-box h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+
+        .login-box p {
+            font-size: 0.82rem;
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .login-box input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 4px;
+        }
+
+        .login-box button:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .login-error {
+            color: #dc2626;
+            font-size: 0.78rem;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .login-error.show { display: block; }
+
+        /* Sidebar */
+        .sidebar { width: 240px; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { padding: 20px 16px; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.6; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-item { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 0.88rem; font-weight: 500; border-left: 3px solid transparent; }
+        .sidebar-item:hover { background: rgba(255,255,255,0.1); }
+        .sidebar-item.active { background: rgba(99,102,241,0.15); border-left-color: #6366f1; font-weight: 700; color: #a5b4fc; }
+        .sidebar-count { background: rgba(99,102,241,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; color: #a5b4fc; }
+
+        /* Header */
+        .header { background: #1a1a2e; color: white; padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.1rem; font-weight: 700; }
+        .header-actions { display: flex; gap: 10px; }
+        .btn-settings { background: rgba(255,255,255,0.1); border: none; color: white; width: 38px; height: 38px; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: background 0.2s; }
+        .btn-settings:hover { background: rgba(255,255,255,0.2); }
+        .btn-new { background: #6366f1; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.2s; }
+        .btn-new:hover { background: #4f46e5; }
+
+        /* Main */
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+        /* Grid View */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        .area-card { background: white; border-radius: 12px; overflow: hidden; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; position: relative; }
+        .area-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(99,102,241,0.12); border-color: #6366f1; }
+        .area-card-image { height: 200px; background: #e5e7eb; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .area-card-image img { width: 100%; height: 100%; object-fit: cover; }
+        .area-card-image .no-image { color: #9ca3af; font-size: 0.85rem; }
+        .area-card-badge { position: absolute; top: 10px; left: 10px; background: #0f172a; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; }
+        .area-card-count { position: absolute; top: 10px; right: 10px; background: #6366f1; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; }
+        .area-card-footer { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
+        .area-card-footer h3 { font-size: 0.95rem; font-weight: 600; }
+        .area-card-footer span { font-size: 0.78rem; color: #6b7280; }
+
+        /* Pin markers on cards */
+        .pin-marker { position: absolute; width: 12px; height: 12px; background: #dc2626; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transform: translate(-50%, -50%); cursor: pointer; z-index: 5; }
+        .pin-marker:hover { transform: translate(-50%, -50%) scale(1.3); }
+        .pin-label { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); background: #1a1a2e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; white-space: nowrap; pointer-events: none; }
+
+        /* Detail View */
+        .detail-view { display: none; }
+        .detail-view.active { display: block; }
+        .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .detail-header h2 { font-size: 1.3rem; font-weight: 700; }
+        .detail-controls { display: flex; gap: 8px; }
+        .detail-btn { background: white; border: 1px solid #e5e7eb; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .detail-btn:hover { border-color: #1a1a2e; }
+        .floor-container { background: white; border-radius: 12px; overflow: hidden; position: relative; height: 450px; border: 1px solid #e5e7eb; }
+        .floor-container img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s; cursor: grab; }
+        .floor-container img:active { cursor: grabbing; }
+        .floor-container .no-image { display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af; }
+
+        /* Contractor Cards */
+        .contractor-list { margin-top: 24px; }
+        .contractor-list h3 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+        .contractor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+        .contractor-card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; transition: all 0.2s; }
+        .contractor-card:hover { border-color: #6366f1; box-shadow: 0 4px 12px rgba(99,102,241,0.08); }
+        .contractor-card h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
+        .contractor-card .cc-company { font-size: 0.8rem; color: #6b7280; margin-bottom: 8px; }
+        .contractor-card .cc-detail { font-size: 0.78rem; color: #4b5563; margin-bottom: 3px; }
+        .contractor-card .cc-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .cc-btn { padding: 5px 12px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid #e5e7eb; background: white; color: #4b5563; transition: all 0.2s; }
+        .cc-btn:hover { border-color: #1a1a2e; color: #1a1a2e; }
+        .cc-btn.delete:hover { border-color: #dc2626; color: #dc2626; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s; }
+        .modal-overlay.open { opacity: 1; visibility: visible; }
+        .modal { background: white; border-radius: 16px; width: 90%; max-width: 700px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { font-size: 1.1rem; font-weight: 700; }
+        .modal-close { cursor: pointer; color: #9ca3af; font-size: 1.1rem; }
+        .modal-close:hover { color: #1a1a2e; }
+        .modal-body { flex: 1; overflow-y: auto; padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 8px 14px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; background: #f3f4f6; color: #6b7280; transition: all 0.2s; border: none; }
+        .tab.active { background: #6366f1; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Form */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.full { grid-column: 1 / -1; }
+        .form-group label { font-size: 0.75rem; font-weight: 600; color: #6b7280; }
+        .form-group input, .form-group select, .form-group textarea { padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.85rem; font-family: 'Inter', sans-serif; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #6366f1; }
+        .form-group textarea { height: 80px; resize: vertical; }
+
+        /* Checkbox Grid */
+        .checkbox-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; }
+        .checkbox-item:hover { border-color: #6366f1; }
+        .checkbox-item.checked { background: #eef2ff; border-color: #6366f1; }
+        .checkbox-item input[type="checkbox"] { accent-color: #6366f1; }
+
+        /* Floor plan pin selector */
+        .pin-selector { position: relative; cursor: crosshair; border: 2px dashed #e5e7eb; border-radius: 8px; overflow: hidden; min-height: 300px; display: flex; align-items: center; justify-content: center; background: #f9fafb; }
+        .pin-selector img { width: 100%; height: auto; max-height: 400px; object-fit: contain; }
+        .pin-selector .placed-pin { position: absolute; width: 16px; height: 16px; background: #dc2626; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transform: translate(-50%, -50%); pointer-events: none; }
+        .pin-hint { text-align: center; margin-top: 8px; font-size: 0.75rem; color: #9ca3af; }
+
+        /* Settings Modal */
+        .settings-areas { margin-bottom: 20px; }
+        .settings-area-item { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
+        .settings-area-item span { flex: 1; font-size: 0.88rem; font-weight: 500; }
+        .settings-area-item .preview-img { width: 60px; height: 40px; border-radius: 4px; object-fit: cover; border: 1px solid #e5e7eb; }
+        .settings-area-item button { padding: 6px 12px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid #e5e7eb; background: white; transition: all 0.2s; }
+        .settings-area-item button:hover { border-color: #1a1a2e; }
+        .settings-area-item .remove-btn:hover { border-color: #dc2626; color: #dc2626; }
+        .add-area-row { display: flex; gap: 8px; margin-top: 12px; }
+        .add-area-row input { flex: 1; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.85rem; }
+        .add-area-row button { padding: 8px 16px; background: #1e293b; color: white; border: none; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+        .saving-indicator { color: #1e293b; font-size: 0.8rem; font-weight: 500; }
+
+        /* Detail Popup */
+        .detail-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; z-index: 2000; box-shadow: 0 20px 60px rgba(0,0,0,0.3); display: none; }
+        .detail-popup.open { display: block; }
+        .detail-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1999; display: none; }
+        .detail-popup-overlay.open { display: block; }
+        .detail-popup h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; }
+        .detail-popup .dp-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 0.82rem; }
+        .detail-popup .dp-label { color: #6b7280; font-weight: 500; }
+        .detail-popup .dp-value { color: #1a1a2e; font-weight: 600; text-align: right; max-width: 60%; }
+        .dp-actions { display: flex; gap: 8px; margin-top: 16px; }
+        .dp-btn { flex: 1; padding: 10px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; text-align: center; }
+        .dp-btn.edit { background: #6366f1; color: white; }
+        .dp-btn.delete { background: #fee2e2; color: #dc2626; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 20px; background: #1a1a2e; color: white; border-radius: 10px; font-size: 0.82rem; z-index: 3000; transform: translateY(80px); opacity: 0; transition: all 0.3s; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .grid { grid-template-columns: 1fr; }
+            .form-grid { grid-template-columns: 1fr; }
+            .checkbox-grid { grid-template-columns: 1fr 1fr; }
+            .content { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-box">
+            <div class="login-icon"><i class="fas fa-shield-alt"></i></div>
+            <h2>PTW Dashboard</h2>
+            <p>Enter your credentials to access the system</p>
+            <form onsubmit="handleLogin(event)">
+                <input type="text" id="loginUser" placeholder="Username" required>
+                <input type="password" id="loginPass" placeholder="Password" required>
+                <button type="submit"><i class="fas fa-sign-in-alt"></i> Log In</button>
+            </form>
+            <p class="login-error" id="loginError">Invalid username or password</p>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header" style="display:flex; align-items:center; gap:10px; padding-bottom:16px; margin-bottom:8px;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon" style="height:20px; filter: brightness(0) invert(1);">
+            <span>PTW System</span>
+        </div>
+        <div class="sidebar-header" style="border-top:none; padding-top:8px;">Areas</div>
+        <div id="sidebarItems"></div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+        <div class="header">
+            <h1>Contractor Management / Permit to Work</h1>
+            <div class="header-actions">
+                <button class="btn-settings" onclick="openSettings()"><i class="fas fa-cog"></i></button>
+                <button class="btn-new" onclick="openPermitForm()"><i class="fas fa-plus"></i> New Job</button>
+            </div>
+        </div>
+        <div class="content" id="contentArea">
+            <div id="gridView" class="grid"></div>
+            <div id="detailView" class="detail-view"></div>
+        </div>
+    </div>
+
+    <!-- Permit Form Modal -->
+    <div class="modal-overlay" id="permitModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="permitFormTitle">New Permit to Work</h2>
+                <span class="modal-close" onclick="closePermitForm()"><i class="fas fa-times"></i></span>
+            </div>
+            <div class="modal-body">
+                <div class="tabs" id="formTabs"></div>
+                <div id="formTabContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="cc-btn" onclick="closePermitForm()">Cancel</button>
+                <button class="btn-new" onclick="savePermit()" style="background:#1e293b;"><i class="fas fa-save"></i> Save Permit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Settings — Area Management</h2>
+                <span class="modal-close" onclick="closeSettings()"><i class="fas fa-times"></i></span>
+            </div>
+            <div class="modal-body" id="settingsBody"></div>
+        </div>
+    </div>
+
+    <!-- Detail Popup -->
+    <div class="detail-popup-overlay" id="popupOverlay" onclick="closePopup()"></div>
+    <div class="detail-popup" id="detailPopup"></div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // === SUPABASE CONFIG ===
+        const SUPABASE_URL = 'https://toelhzkhdvnvqmbmlown.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvZWxoemtoZHZudnFtYm1sb3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NzY3NzYsImV4cCI6MjA5NzQ1Mjc3Nn0.timxteWu9hvR0Qo_d6EV7XPKYPZ3ZXAvYb0uCJnvLzU';
+        const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
+
+        async function supaFetch(table, method, body, query, upsert) {
+            const url = `${SUPABASE_URL}/rest/v1/${table}${query || ''}`;
+            const h = { ...headers };
+            if (upsert) h['Prefer'] = 'resolution=merge-duplicates,return=representation';
+            const opts = { method, headers: h };
+            if (body) opts.body = JSON.stringify(body);
+            const res = await fetch(url, opts);
+            if (!res.ok) { console.error('Supabase error:', await res.text()); return null; }
+            const text = await res.text();
+            return text ? JSON.parse(text) : null;
+        }
+
+        // === DATA ===
+        let areas = ['P1', 'P2', 'P3', 'Yard', 'Dach', 'General'];
+        let permits = [];
+        let floorImages = {};
+        let currentArea = 'Overview';
+        let editingPermitId = null;
+        let pinPosition = null;
+        let dbReady = false;
+
+        // Load from Supabase
+        async function loadData() {
+            try {
+                // Load areas config
+                const configRes = await supaFetch('config', 'GET', null, '?key=eq.areas&select=value');
+                if (configRes && configRes.length > 0) areas = configRes[0].value;
+
+                // Load permits
+                const permitsRes = await supaFetch('permits', 'GET', null, '?select=data');
+                if (permitsRes) permits = permitsRes.map(r => r.data);
+
+                // Load floor images
+                const imgRes = await supaFetch('floor_images', 'GET', null, '?select=area,image');
+                if (imgRes) { floorImages = {}; imgRes.forEach(r => floorImages[r.area] = r.image); }
+
+                dbReady = true;
+            } catch (e) {
+                console.error('Failed to load from Supabase, using localStorage fallback:', e);
+                areas = JSON.parse(localStorage.getItem('ptw_areas')) || ['P1', 'P2', 'P3', 'Yard', 'Dach', 'General'];
+                permits = JSON.parse(localStorage.getItem('ptw_permits_v2')) || [];
+                floorImages = JSON.parse(localStorage.getItem('ptw_floor_images')) || {};
+            }
+            renderSidebar();
+            if (currentArea === 'Overview') renderGrid();
+            else renderDetail(currentArea);
+        }
+
+        // Save to Supabase
+        async function save() {
+            // Always save locally as backup
+            localStorage.setItem('ptw_areas', JSON.stringify(areas));
+            localStorage.setItem('ptw_permits_v2', JSON.stringify(permits));
+            localStorage.setItem('ptw_floor_images', JSON.stringify(floorImages));
+
+            if (!dbReady) return;
+
+            // Save areas config
+            await supaFetch('config', 'POST', { key: 'areas', value: areas }, '?on_conflict=key');
+
+            // Save permits (upsert all)
+            for (const p of permits) {
+                await supaFetch('permits', 'POST', { id: p.id, data: p }, '?on_conflict=id');
+            }
+        }
+
+        async function saveAreas() {
+            localStorage.setItem('ptw_areas', JSON.stringify(areas));
+            if (!dbReady) return;
+            await supaFetch('config', 'POST', { key: 'areas', value: areas }, '', true);
+        }
+
+        async function savePermit_db(permit) {
+            localStorage.setItem('ptw_permits_v2', JSON.stringify(permits));
+            if (!dbReady) return;
+            await supaFetch('permits', 'POST', { id: permit.id, data: permit }, '', true);
+        }
+
+        async function deletePermit_db(id) {
+            localStorage.setItem('ptw_permits_v2', JSON.stringify(permits));
+            if (!dbReady) return;
+            await supaFetch('permits', 'DELETE', null, `?id=eq.${id}`);
+        }
+
+        async function saveFloorImage(area) {
+            localStorage.setItem('ptw_floor_images', JSON.stringify(floorImages));
+            if (!dbReady) return;
+            if (floorImages[area]) {
+                await supaFetch('floor_images', 'POST', { area: area, image: floorImages[area] }, '', true);
+            } else {
+                await supaFetch('floor_images', 'DELETE', null, `?area=eq.${area}`);
+            }
+        }
+
+        // === SIDEBAR ===
+        function renderSidebar() {
+            const counts = {};
+            areas.forEach(a => counts[a] = permits.filter(p => p.workLocation === a).length);
+            const total = permits.length;
+
+            let html = `<div class="sidebar-item ${currentArea === 'Overview' ? 'active' : ''}" onclick="selectArea('Overview')">
+                <span><i class="fas fa-th-large"></i>&nbsp; Overview</span><span class="sidebar-count">${total}</span></div>`;
+
+            areas.forEach(a => {
+                html += `<div class="sidebar-item ${currentArea === a ? 'active' : ''}" onclick="selectArea('${a}')">
+                    <span>${a}</span><span class="sidebar-count">${counts[a] || 0}</span></div>`;
+            });
+
+            document.getElementById('sidebarItems').innerHTML = html;
+        }
+
+        function selectArea(area) {
+            currentArea = area;
+            renderSidebar();
+            if (area === 'Overview') renderGrid();
+            else renderDetail(area);
+        }
+
+        // === GRID VIEW ===
+        function renderGrid() {
+            document.getElementById('detailView').classList.remove('active');
+            const grid = document.getElementById('gridView');
+            grid.style.display = 'grid';
+
+            grid.innerHTML = areas.map(area => {
+                const areaPermits = permits.filter(p => p.workLocation === area);
+                const img = floorImages[area];
+                return `<div class="area-card" onclick="selectArea('${area}')">
+                    <div class="area-card-image">
+                        ${img ? `<img src="${img}" alt="${area}">` : '<span class="no-image"><i class="fas fa-map"></i>&nbsp; No floor plan</span>'}
+                        <span class="area-card-badge">${area}</span>
+                        ${areaPermits.length > 0 ? `<span class="area-card-count">${areaPermits.length} jobs</span>` : ''}
+                        ${areaPermits.filter(p => p.pinX).map(p => `<div class="pin-marker" style="left:${p.pinX}%;top:${p.pinY}%"><span class="pin-label">${p.contractorName}</span></div>`).join('')}
+                    </div>
+                    <div class="area-card-footer"><h3>${area}</h3><span>${areaPermits.length} contractor${areaPermits.length !== 1 ? 's' : ''}</span></div>
+                </div>`;
+            }).join('');
+        }
+
+        // === DETAIL VIEW ===
+        function renderDetail(area) {
+            document.getElementById('gridView').style.display = 'none';
+            const detail = document.getElementById('detailView');
+            detail.classList.add('active');
+
+            const areaPermits = permits.filter(p => p.workLocation === area);
+            const img = floorImages[area];
+
+            detail.innerHTML = `
+                <div class="detail-header">
+                    <h2>${area}</h2>
+                    <div class="detail-controls">
+                        <button class="detail-btn" onclick="selectArea('Overview')" title="Back"><i class="fas fa-arrow-left"></i></button>
+                        <button class="detail-btn" onclick="zoomIn()" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+                        <button class="detail-btn" onclick="zoomOut()" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                        <button class="detail-btn" onclick="resetZoom()" title="Reset"><i class="fas fa-undo"></i></button>
+                        <button class="detail-btn" onclick="toggleFullscreen()" title="Fullscreen"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+                <div class="floor-container" id="floorContainer">
+                    ${img ? `<img src="${img}" id="floorImg" alt="${area} floor plan">` : '<div class="no-image"><i class="fas fa-map" style="font-size:2rem;margin-right:8px;"></i> No floor plan uploaded — add one in Settings</div>'}
+                    ${areaPermits.filter(p => p.pinX).map(p => `<div class="pin-marker" style="left:${p.pinX}%;top:${p.pinY}%" onclick="showPopup('${p.id}')"><span class="pin-label">${p.contractorName}</span></div>`).join('')}
+                </div>
+                <div class="contractor-list">
+                    <h3>Contractors (${areaPermits.length})</h3>
+                    <div class="contractor-grid">
+                        ${areaPermits.length === 0 ? '<p style="color:#9ca3af;font-size:0.85rem;">No contractors in this area</p>' :
+                        areaPermits.map(p => `<div class="contractor-card">
+                            <h4>${p.contractorName}</h4>
+                            <div class="cc-company">${p.company || 'N/A'}</div>
+                            <div class="cc-detail"><i class="fas fa-briefcase"></i> ${p.workType || 'N/A'}</div>
+                            <div class="cc-detail"><i class="fas fa-calendar"></i> ${p.startDate || ''} — ${p.endDate || ''}</div>
+                            <div class="cc-detail"><i class="fas fa-users"></i> ${p.numWorkers || 1} worker${(p.numWorkers || 1) > 1 ? 's' : ''}</div>
+                            <div class="cc-detail"><i class="fas fa-phone"></i> ${p.contact || 'N/A'}</div>
+                            <div class="cc-detail"><i class="fas fa-info-circle"></i> ${(p.description || '').substring(0, 60)}${(p.description || '').length > 60 ? '...' : ''}</div>
+                            <div class="cc-actions">
+                                <button class="cc-btn" onclick="editPermit('${p.id}')"><i class="fas fa-edit"></i> Edit</button>
+                                <button class="cc-btn delete" onclick="deletePermit('${p.id}')"><i class="fas fa-trash"></i> Delete</button>
+                            </div>
+                        </div>`).join('')}
+                    </div>
+                </div>`;
+        }
+
+        let zoomLevel = 1;
+        function zoomIn() { zoomLevel = Math.min(zoomLevel + 0.3, 3); applyZoom(); }
+        function zoomOut() { zoomLevel = Math.max(zoomLevel - 0.3, 0.5); applyZoom(); }
+        function resetZoom() { zoomLevel = 1; applyZoom(); }
+        function applyZoom() { const img = document.getElementById('floorImg'); if (img) img.style.transform = `scale(${zoomLevel})`; }
+        function toggleFullscreen() { const el = document.getElementById('floorContainer'); if (el.requestFullscreen) el.requestFullscreen(); }
+
+        // === POPUP ===
+        function showPopup(id) {
+            const p = permits.find(x => x.id === id);
+            if (!p) return;
+            const popup = document.getElementById('detailPopup');
+            popup.innerHTML = `
+                <h3>${p.contractorName} <span class="modal-close" onclick="closePopup()"><i class="fas fa-times"></i></span></h3>
+                <div class="dp-row"><span class="dp-label">Company</span><span class="dp-value">${p.company || 'N/A'}</span></div>
+                <div class="dp-row"><span class="dp-label">Contact</span><span class="dp-value">${p.contact || 'N/A'}</span></div>
+                <div class="dp-row"><span class="dp-label">Email</span><span class="dp-value">${p.email || 'N/A'}</span></div>
+                <div class="dp-row"><span class="dp-label">Workers</span><span class="dp-value">${p.numWorkers || 1} person${(p.numWorkers || 1) > 1 ? 's' : ''}</span></div>
+                <div class="dp-row"><span class="dp-label">Work Type</span><span class="dp-value">${p.workType || 'N/A'}</span></div>
+                <div class="dp-row"><span class="dp-label">Location</span><span class="dp-value">${p.workLocation || 'N/A'}</span></div>
+                <div class="dp-row"><span class="dp-label">Description</span><span class="dp-value">${p.description || 'N/A'}</span></div>
+                <div class="dp-row"><span class="dp-label">Dates</span><span class="dp-value">${p.startDate} — ${p.endDate}</span></div>
+                <div class="dp-row"><span class="dp-label">Times</span><span class="dp-value">${p.startTime} — ${p.endTime}</span></div>
+                <div class="dp-row"><span class="dp-label">Status</span><span class="dp-value">${p.status || 'Draft'}</span></div>
+                <div class="dp-row"><span class="dp-label">Permit #</span><span class="dp-value">${p.id}</span></div>
+                <div class="dp-row"><span class="dp-label">Hazards</span><span class="dp-value">${(p.hazards || []).join(', ') || 'None'}</span></div>
+                <div class="dp-row"><span class="dp-label">Supervisor</span><span class="dp-value">${p.supervisor || 'N/A'}</span></div>
+                <div class="dp-actions">
+                    <button class="dp-btn edit" onclick="closePopup();editPermit('${p.id}')">Edit</button>
+                    <button class="dp-btn delete" onclick="closePopup();deletePermit('${p.id}')">Delete</button>
+                </div>`;
+            popup.classList.add('open');
+            document.getElementById('popupOverlay').classList.add('open');
+        }
+
+        function closePopup() {
+            document.getElementById('detailPopup').classList.remove('open');
+            document.getElementById('popupOverlay').classList.remove('open');
+        }
+
+        // === PERMIT FORM ===
+        const tabNames = ['General Info', 'Work Details', 'Floor Plan', 'Hazards', 'Safety Controls', 'PPE', 'Authorization'];
+        let activeTab = 0;
+
+        const hazardOptions = ['Working at Height', 'Hot Work', 'Confined Space', 'Electrical', 'Excavation', 'Chemical Exposure', 'Noise', 'Lifting/Crane', 'Radiation', 'Asbestos', 'Fire Risk', 'Falling Objects'];
+        const safetyOptions = ['Area Barricaded', 'Fire Watch', 'Gas Testing', 'Lockout/Tagout', 'Ventilation', 'Spotter Assigned', 'Rescue Plan', 'Communication Plan', 'Tool Inspection', 'Ground Fault Protection', 'Dust Suppression', 'Traffic Control'];
+        const ppeOptions = ['Hard Hat', 'Safety Glasses', 'Steel Toe Boots', 'High-Vis Vest', 'Gloves', 'Hearing Protection', 'Respirator', 'Fall Harness', 'Face Shield', 'Fire Resistant Clothing', 'Chemical Suit', 'Safety Goggles'];
+
+        let formData = {};
+
+        function openPermitForm(id) {
+            editingPermitId = id || null;
+            if (id) {
+                formData = { ...permits.find(p => p.id === id) };
+                document.getElementById('permitFormTitle').textContent = 'Edit Permit';
+            } else {
+                formData = { id: 'PTW-' + String(permits.length + 1).padStart(3, '0'), hazards: [], safetyControls: [], ppe: [], status: 'Draft' };
+                document.getElementById('permitFormTitle').textContent = 'New Permit to Work';
+            }
+            pinPosition = formData.pinX ? { x: formData.pinX, y: formData.pinY } : null;
+            activeTab = 0;
+            renderFormTabs();
+            document.getElementById('permitModal').classList.add('open');
+        }
+
+        function closePermitForm() { document.getElementById('permitModal').classList.remove('open'); }
+
+        function renderFormTabs() {
+            document.getElementById('formTabs').innerHTML = tabNames.map((t, i) =>
+                `<button class="tab ${i === activeTab ? 'active' : ''}" onclick="switchTab(${i})">${t}</button>`).join('');
+            renderTabContent();
+        }
+
+        function switchTab(i) { activeTab = i; renderFormTabs(); }
+
+        function renderTabContent() {
+            const container = document.getElementById('formTabContent');
+            let html = '';
+
+            switch (activeTab) {
+                case 0: html = `<div class="form-grid">
+                    <div class="form-group"><label>Contractor Name</label><input type="text" id="f_name" value="${formData.contractorName || ''}" onchange="formData.contractorName=this.value"></div>
+                    <div class="form-group"><label>Company</label><input type="text" id="f_company" value="${formData.company || ''}" onchange="formData.company=this.value"></div>
+                    <div class="form-group"><label>Contact Number</label><input type="text" id="f_contact" value="${formData.contact || ''}" onchange="formData.contact=this.value"></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="f_email" value="${formData.email || ''}" onchange="formData.email=this.value"></div>
+                    <div class="form-group"><label>Number of Workers</label><input type="number" min="1" value="${formData.numWorkers || 1}" onchange="formData.numWorkers=parseInt(this.value)"></div>
+                </div>`; break;
+
+                case 1: html = `<div class="form-grid">
+                    <div class="form-group"><label>Work Type</label><select onchange="formData.workType=this.value"><option value="">Select</option>
+                        ${['Welding', 'Electrical', 'Plumbing', 'Construction', 'Painting', 'Maintenance', 'Cleaning', 'Installation', 'Inspection', 'Demolition', 'Other'].map(o => `<option ${formData.workType === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>Work Location</label><select onchange="formData.workLocation=this.value;renderTabContent()"><option value="">Select area</option>
+                        ${areas.map(a => `<option ${formData.workLocation === a ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>Start Date</label><input type="date" value="${formData.startDate || ''}" onchange="formData.startDate=this.value"></div>
+                    <div class="form-group"><label>End Date</label><input type="date" value="${formData.endDate || ''}" onchange="formData.endDate=this.value"></div>
+                    <div class="form-group"><label>Start Time</label><input type="time" value="${formData.startTime || ''}" onchange="formData.startTime=this.value"></div>
+                    <div class="form-group"><label>End Time</label><input type="time" value="${formData.endTime || ''}" onchange="formData.endTime=this.value"></div>
+                    <div class="form-group full"><label>Work Description</label><textarea onchange="formData.description=this.value">${formData.description || ''}</textarea></div>
+                </div>`; break;
+
+                case 2:
+                    const loc = formData.workLocation;
+                    const floorImg = loc ? floorImages[loc] : null;
+                    html = `<p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">Click on the floor plan to mark the exact work location.</p>
+                    <div class="pin-selector" id="pinSelector" onclick="placePin(event)">
+                        ${floorImg ? `<img src="${floorImg}" alt="Floor plan">` : '<span style="color:#9ca3af;">Select a Work Location in "Work Details" tab first, and upload a floor plan in Settings.</span>'}
+                        ${pinPosition ? `<div class="placed-pin" style="left:${pinPosition.x}%;top:${pinPosition.y}%"></div>` : ''}
+                    </div>
+                    <p class="pin-hint">${pinPosition ? '✓ Pin placed — click elsewhere to reposition' : 'Click on the image to place the contractor pin'}</p>`; break;
+
+                case 3: html = renderCheckboxGrid('hazards', hazardOptions); break;
+                case 4: html = renderCheckboxGrid('safetyControls', safetyOptions); break;
+                case 5: html = renderCheckboxGrid('ppe', ppeOptions); break;
+
+                case 6: html = `<div class="form-grid">
+                    <div class="form-group"><label>Supervisor Name</label><input type="text" value="${formData.supervisor || ''}" onchange="formData.supervisor=this.value"></div>
+                    <div class="form-group"><label>Safety Officer</label><input type="text" value="${formData.safetyOfficer || ''}" onchange="formData.safetyOfficer=this.value"></div>
+                    <div class="form-group full"><label>Special Instructions</label><textarea onchange="formData.specialInstructions=this.value">${formData.specialInstructions || ''}</textarea></div>
+                    <div class="form-group full"><label>Emergency Procedures</label><textarea onchange="formData.emergencyProcedures=this.value">${formData.emergencyProcedures || ''}</textarea></div>
+                    <div class="form-group"><label>Permit Status</label><select onchange="formData.status=this.value">
+                        ${['Draft', 'Submitted', 'Approved', 'Active', 'Closed'].map(s => `<option ${formData.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+                </div>`; break;
+            }
+            container.innerHTML = html;
+        }
+
+        function renderCheckboxGrid(field, options) {
+            return `<div class="checkbox-grid">${options.map(opt => {
+                const checked = (formData[field] || []).includes(opt);
+                return `<label class="checkbox-item ${checked ? 'checked' : ''}">
+                    <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleCheckbox('${field}', '${opt}', this.checked)"> ${opt}</label>`;
+            }).join('')}</div>`;
+        }
+
+        function toggleCheckbox(field, value, checked) {
+            if (!formData[field]) formData[field] = [];
+            if (checked) formData[field].push(value);
+            else formData[field] = formData[field].filter(v => v !== value);
+            renderTabContent();
+        }
+
+        function placePin(e) {
+            const rect = document.getElementById('pinSelector').getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            pinPosition = { x: x.toFixed(2), y: y.toFixed(2) };
+            formData.pinX = pinPosition.x;
+            formData.pinY = pinPosition.y;
+            renderTabContent();
+        }
+
+        async function savePermit() {
+            if (!formData.contractorName) { showToast('Please enter contractor name'); return; }
+            if (!formData.workLocation) { showToast('Please select work location'); return; }
+
+            if (editingPermitId) {
+                const idx = permits.findIndex(p => p.id === editingPermitId);
+                if (idx >= 0) permits[idx] = formData;
+            } else {
+                formData.id = 'PTW-' + String(permits.length + 1).padStart(3, '0');
+                permits.push(formData);
+            }
+
+            await savePermit_db(formData);
+            closePermitForm();
+            selectArea(formData.workLocation);
+            showToast(`Permit ${formData.id} saved`);
+        }
+
+        function editPermit(id) { openPermitForm(id); }
+
+        async function deletePermit(id) {
+            if (confirm(`Delete permit ${id}?`)) {
+                permits = permits.filter(p => p.id !== id);
+                await deletePermit_db(id);
+                selectArea(currentArea);
+                showToast(`Permit ${id} deleted`);
+            }
+        }
+
+        // === SETTINGS ===
+        function openSettings() {
+            renderSettings();
+            document.getElementById('settingsModal').classList.add('open');
+        }
+
+        function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+
+        function renderSettings() {
+            document.getElementById('settingsBody').innerHTML = `
+                <h3 style="font-size:0.95rem;margin-bottom:14px;">Manage Areas & Floor Plans</h3>
+                <div class="settings-areas">${areas.map((a, i) => `
+                    <div class="settings-area-item">
+                        <span>${a}</span>
+                        ${floorImages[a] ? `<img src="${floorImages[a]}" class="preview-img">` : ''}
+                        <button onclick="uploadFloorPlan('${a}')"><i class="fas fa-upload"></i> ${floorImages[a] ? 'Change' : 'Upload'}</button>
+                        ${floorImages[a] ? `<button onclick="removeFloorPlan('${a}')" class="remove-btn"><i class="fas fa-trash"></i></button>` : ''}
+                        <button onclick="removeArea(${i})" class="remove-btn"><i class="fas fa-times"></i></button>
+                    </div>`).join('')}
+                </div>
+                <div class="add-area-row">
+                    <input type="text" id="newAreaName" placeholder="New area name...">
+                    <button onclick="addArea()"><i class="fas fa-plus"></i> Add</button>
+                </div>
+                <div id="savingIndicator"></div>`;
+        }
+
+        async function addArea() {
+            const name = document.getElementById('newAreaName').value.trim();
+            if (!name) return;
+            if (areas.includes(name)) { showToast('Area already exists'); return; }
+            areas.push(name);
+            await saveAreas();
+            renderSettings();
+            renderSidebar();
+            showToast(`Area "${name}" added`);
+        }
+
+        async function removeArea(idx) {
+            const name = areas[idx];
+            if (confirm(`Remove area "${name}"?`)) {
+                areas.splice(idx, 1);
+                delete floorImages[name];
+                await saveAreas();
+                await saveFloorImage(name);
+                renderSettings();
+                renderSidebar();
+                if (currentArea === name) selectArea('Overview');
+            }
+        }
+
+        function uploadFloorPlan(area) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                document.getElementById('savingIndicator').innerHTML = '<span class="saving-indicator">⏳ Saving...</span>';
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    floorImages[area] = ev.target.result;
+                    await saveFloorImage(area);
+                    renderSettings();
+                    renderSidebar();
+                    if (currentArea === area) renderDetail(area);
+                    else if (currentArea === 'Overview') renderGrid();
+                    showToast(`Floor plan uploaded for ${area}`);
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        async function removeFloorPlan(area) {
+            delete floorImages[area];
+            await saveFloorImage(area);
+            renderSettings();
+            showToast(`Floor plan removed for ${area}`);
+        }
+
+        // === TOAST ===
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show';
+            setTimeout(() => { t.className = 'toast'; }, 3000);
+        }
+
+        // === LOGIN ===
+        const VALID_USER = 'amndlal';
+        const VALID_PASS = 'ptw2026';
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
+
+            if (user === VALID_USER && pass === VALID_PASS) {
+                document.getElementById('loginScreen').classList.add('hidden');
+                sessionStorage.setItem('ptw_logged_in', 'true');
+            } else {
+                document.getElementById('loginError').classList.add('show');
+                setTimeout(() => document.getElementById('loginError').classList.remove('show'), 3000);
+            }
+        }
+
+        // Check if already logged in this session
+        if (sessionStorage.getItem('ptw_logged_in') === 'true') {
+            document.getElementById('loginScreen').classList.add('hidden');
+        }
+
+        // === INIT ===
+        loadData();
+    </script>
+</body>
+</html>
