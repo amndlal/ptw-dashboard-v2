@@ -28,17 +28,16 @@
     width:250px;flex-shrink:0;background:linear-gradient(160deg,var(--yellow-a),var(--yellow-b));
     color:var(--brown);display:flex;flex-direction:column;padding:18px 14px;overflow-y:auto;
   }
-  .brand{font-size:28px;font-weight:800;letter-spacing:1px;padding:6px 10px 18px;color:var(--brown)}
+  .brand{font-size:28px;font-weight:800;letter-spacing:1px;padding:6px 10px 14px;color:var(--brown);border-bottom:1px solid rgba(66,32,6,.2);margin-bottom:10px}
   .nav-item{
     display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;border-radius:12px;
     cursor:pointer;font-weight:600;font-size:14px;transition:background .15s,transform .1s;color:var(--brown);
   }
   .nav-item:hover{background:rgba(66,32,6,.10)}
-  .nav-item.active{background:rgba(66,32,6,.20)}
-  .nav-item .badge{background:var(--brown);color:var(--yellow-b);border-radius:999px;font-size:11px;padding:2px 8px;font-weight:700;min-width:22px;text-align:center}
-  .nav-sub{margin-left:12px;border-left:2px solid rgba(66,32,6,.25);padding-left:6px}
-  .nav-caret{transition:transform .15s;font-size:11px;opacity:.7}
-  .nav-caret.open{transform:rotate(90deg)}
+  .nav-item.active{background:rgba(255,255,255,.45)}
+  .nav-item .badge{background:var(--brown);color:var(--yellow-b);border-radius:999px;font-size:11px;padding:2px 8px;font-weight:700;min-width:22px;text-align:center;white-space:nowrap}
+  .nav-item .ico{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+  .nav-item.sub{margin-left:24px;font-size:13.5px;padding:9px 12px}
 
   /* Main */
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
@@ -999,11 +998,17 @@ function App(){
   const expiredList=permits.filter(p=>expiryState(p)==='expired');
   const expiringList=permits.filter(p=>expiryState(p)==='expiring');
 
-  const NavItem=({name,count,active,onClick,children,caret,onCaret})=>(
-    <div className={'nav-item'+(active?' active':'')} onClick={onClick}>
-      <span style={{display:'flex',alignItems:'center',gap:6}}>
-        {caret!=null && <span className={'nav-caret'+(caret?' open':'')} onClick={e=>{e.stopPropagation();onCaret();}}>▶</span>}
-        {name}
+  // Icons follow the Quick Apps layout: chart for Overview, buildings for areas,
+  // folder for areas with sub-areas, pin for sub-areas, roof/parking specials.
+  const areaIcon=(a,subs)=>{
+    if(subs.length) return '📁';
+    return '🏢';
+  };
+  const NavItem=({name,icon,count,active,sub,onClick})=>(
+    <div className={'nav-item'+(active?' active':'')+(sub?' sub':'')} onClick={onClick}>
+      <span style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+        <span className="ico">{icon}</span>
+        <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
       </span>
       {count!=null && <span className="badge">{count}</span>}
     </div>
@@ -1014,24 +1019,21 @@ function App(){
       {/* Sidebar */}
       <div className="sidebar">
         <div className="brand">PTW</div>
-        <NavItem name="Overview" count={total} active={selected==='Overview'} onClick={()=>{setSelected('Overview');setFullscreen(false);}} />
-        <div style={{fontSize:11,fontWeight:800,opacity:.6,padding:'14px 12px 6px',textTransform:'uppercase',letterSpacing:.6}}>Areas</div>
+        <NavItem name="Overview" icon="📊" count={total||null} active={selected==='Overview'} onClick={()=>{setSelected('Overview');setFullscreen(false);}} />
         {topAreas.map(a=>{
           const subs=subAreas(a.name);
+          const w=workersInArea(a.name);
           return (
             <div key={a.name}>
-              <NavItem name={a.name} count={workersInArea(a.name)+'/'+permitsInArea(a.name).length} active={selected===a.name}
-                caret={subs.length? !!expanded[a.name]: null}
-                onCaret={()=>setExpanded(e=>({...e,[a.name]:!e[a.name]}))}
+              <NavItem name={a.name} icon={areaIcon(a,subs)} count={w>0? w+' 👤':null} active={selected===a.name}
                 onClick={()=>{setSelected(a.name);setFullscreen(false);}} />
-              {subs.length>0 && expanded[a.name] && (
-                <div className="nav-sub">
-                  {subs.map(s=>(
-                    <NavItem key={s.name} name={s.name} count={workersInArea(s.name)+'/'+permitsInArea(s.name).length} active={selected===s.name}
-                      onClick={()=>{setSelected(s.name);setFullscreen(false);}} />
-                  ))}
-                </div>
-              )}
+              {subs.map(s=>{
+                const sw=workersInArea(s.name);
+                return (
+                  <NavItem key={s.name} name={s.name} icon="📍" sub count={sw>0? sw+' 👤':null} active={selected===s.name}
+                    onClick={()=>{setSelected(s.name);setFullscreen(false);}} />
+                );
+              })}
             </div>
           );
         })}
