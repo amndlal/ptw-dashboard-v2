@@ -6,14 +6,13 @@
 <title>Contractor Management — Permit to Work System</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
 <style>
   :root{
     --purple:#6366f1; --purple-dark:#4f46e5; --bg:#f8fafc; --card:#ffffff;
     --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
     --yellow-a:#eab308; --yellow-b:#facc15; --brown:#422006;
-    --orange-a:#f97316; --orange-b:#fb923c; --headerbg:#1e3a8a; --red:#dc2626;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -26,7 +25,7 @@
 
   /* Sidebar */
   .sidebar{
-    width:250px;flex-shrink:0;background:linear-gradient(160deg,var(--orange-a),var(--orange-b));
+    width:250px;flex-shrink:0;background:linear-gradient(160deg,var(--yellow-a),var(--yellow-b));
     color:var(--brown);display:flex;flex-direction:column;padding:18px 14px;overflow-y:auto;
   }
   .brand{font-size:28px;font-weight:800;letter-spacing:1px;padding:6px 10px 18px;color:var(--brown)}
@@ -36,7 +35,7 @@
   }
   .nav-item:hover{background:rgba(66,32,6,.10)}
   .nav-item.active{background:rgba(66,32,6,.20)}
-  .nav-item .badge{background:var(--brown);color:#ffedd5;border-radius:999px;font-size:11px;padding:2px 8px;font-weight:700;min-width:22px;text-align:center}
+  .nav-item .badge{background:var(--brown);color:var(--yellow-b);border-radius:999px;font-size:11px;padding:2px 8px;font-weight:700;min-width:22px;text-align:center}
   .nav-sub{margin-left:12px;border-left:2px solid rgba(66,32,6,.25);padding-left:6px}
   .nav-caret{transition:transform .15s;font-size:11px;opacity:.7}
   .nav-caret.open{transform:rotate(90deg)}
@@ -44,11 +43,11 @@
   /* Main */
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
   .header{
-    background:var(--headerbg);border-bottom:1px solid #172f6e;padding:16px 26px;
+    background:var(--card);border-bottom:1px solid var(--line);padding:16px 26px;
     display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
   }
-  .header h1{font-size:20px;font-weight:800;color:#fff}
-  .header .sub{font-size:12.5px;color:#c7d2fe;margin-top:2px}
+  .header h1{font-size:20px;font-weight:800}
+  .header .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
   .header-actions{display:flex;gap:10px;align-items:center}
   .content{flex:1;overflow-y:auto;padding:22px 26px}
 
@@ -62,8 +61,6 @@
   .btn-light:hover{background:#e2e8f0}
   .btn-danger{background:#fee2e2;color:#b91c1c}
   .btn-danger:hover{background:#fecaca}
-  .btn-red{background:linear-gradient(135deg,#ef4444,var(--red));color:#fff}
-  .btn-red:hover{filter:brightness(1.08)}
   .btn-icon{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;font-size:16px}
   .btn-sm{padding:6px 10px;font-size:12px;border-radius:9px}
 
@@ -95,11 +92,11 @@
 
   /* Badges */
   .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700}
-  .st-Draft{background:#f1f5f9;color:#475569}
+  .st-Draft{background:#f3f4f6;color:#6b7280}
   .st-Submitted{background:#fef9c3;color:#a16207}
-  .st-Approved{background:#dcfce7;color:#15803d}
-  .st-Active{background:#dbeafe;color:#1d4ed8}
-  .st-Closed{background:#fee2e2;color:#b91c1c}
+  .st-Approved{background:#d1fae5;color:#059669}
+  .st-Active{background:#dbeafe;color:#2563eb}
+  .st-Closed{background:#fee2e2;color:#dc2626}
   .warn-pill{background:#fef3c7;color:#b45309}
   .exp-pill{background:#fee2e2;color:#b91c1c}
 
@@ -131,7 +128,7 @@
   .acard .abody{padding:13px 15px}
   .acard h4{font-size:15px;margin-bottom:6px}
   .acard .counts{display:flex;gap:14px;font-size:12.5px;color:var(--muted);font-weight:600}
-  .mini-pin{position:absolute;width:14px;height:14px;background:var(--red);border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+  .mini-pin{position:absolute;width:14px;height:14px;background:var(--purple);border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 1px 4px rgba(0,0,0,.4)}
 
   /* Floor plan viewer */
   .fp-wrap{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
@@ -142,7 +139,7 @@
   .fp-img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
   .fp-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;flex-direction:column;gap:8px}
   .pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;z-index:5}
-  .pin .dot{width:20px;height:20px;background:var(--red);border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .pin .dot{width:20px;height:20px;background:var(--purple);border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.4)}
   .pin .lbl{position:absolute;left:50%;top:-8px;transform:translate(-50%,-100%);background:#0f172a;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:7px;white-space:nowrap;pointer-events:none}
   .pin .lbl:after{content:'';position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0f172a}
 
@@ -194,11 +191,18 @@
 
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
-const RC = window.Recharts || {};
-const {
-  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, Tooltip, Legend, CartesianGrid
-} = RC;
+
+/* Highcharts wrapper — renders a chart into a div and updates on option changes */
+function HChart({ options, height }){
+  const ref = useRef(null);
+  const chartRef = useRef(null);
+  useEffect(()=>{
+    if(!window.Highcharts || !ref.current) return;
+    chartRef.current = window.Highcharts.chart(ref.current, options);
+    return ()=>{ if(chartRef.current){ chartRef.current.destroy(); chartRef.current=null; } };
+  },[JSON.stringify(options)]);
+  return <div ref={ref} style={{width:'100%',height:height||240}} />;
+}
 
 /* ============================= Supabase backend (cross-device sync) ============================= */
 const SUPABASE_URL = 'https://toelhzkhdvnvqmbmlown.supabase.co';
@@ -247,11 +251,11 @@ const imageStorage = {
 };
 
 /* ============================= data model + cloud data layer ============================= */
-const KEYS = { permits:'ptw_permits', areas:'ptw_areas', pin:'ptw_admin_pin' };
+const KEYS = { permits:'ptw_permits', areas:'ptw_areas', admin:'ptw_admin_creds' };
 const DEFAULT_AREAS = [
   { name:'P1', parent:null }, { name:'P2', parent:null }, { name:'P3', parent:null },
   { name:'Yard', parent:null }, { name:'Offsite Yard', parent:'Yard' },
-  { name:'Dach', parent:null }, { name:'General', parent:null },
+  { name:'Dach', parent:null }, { name:'Parkhouse', parent:null },
 ];
 // Map legacy permit shape (old dashboard) onto the current model so existing records display correctly.
 function normalizePermit(d){
@@ -291,16 +295,26 @@ const db = {
     return areas;
   },
   async saveAreas(a){ await supaFetch('config','POST',{ key:'areas', value:a },'', true); localStorage.setItem(KEYS.areas, JSON.stringify(a)); },
+  // Admin approval credentials (ID + password) live in the config table so they apply across devices.
+  async loadAdmin(){
+    const rows = await supaFetch('config','GET',null,'?key=eq.admin_credentials&select=value');
+    const c = rows && rows.length ? rows[0].value : null;
+    if(c) localStorage.setItem(KEYS.admin, JSON.stringify(c)); else localStorage.removeItem(KEYS.admin);
+    return c;
+  },
+  async saveAdmin(c){
+    await supaFetch('config','POST',{ key:'admin_credentials', value:c },'', true);
+    if(c) localStorage.setItem(KEYS.admin, JSON.stringify(c)); else localStorage.removeItem(KEYS.admin);
+  },
 };
-// localStorage cache / offline fallback + local-only admin PIN
+// localStorage cache / offline fallback
 const store = {
   cachedPermits(){ try { return JSON.parse(localStorage.getItem(KEYS.permits)) || []; } catch { return []; } },
   cachedAreas(){ try { const a = JSON.parse(localStorage.getItem(KEYS.areas)); return (a && a.length) ? a : DEFAULT_AREAS; } catch { return DEFAULT_AREAS; } },
-  getPin(){ return localStorage.getItem(KEYS.pin) || ''; },
-  setPin(p){ p ? localStorage.setItem(KEYS.pin, p) : localStorage.removeItem(KEYS.pin); },
+  getAdmin(){ try { const c = JSON.parse(localStorage.getItem(KEYS.admin)); return (c && c.id && c.password) ? c : null; } catch { return null; } },
 };
 
-const WORK_TYPES = ['General','Electrical','Mechanical','Hot Work','Working at Height','Confined Space','Excavation','Plumbing','Cleaning','Inspection','Installation','Demolition'];
+const WORK_TYPES = ['General Maintenance','Electrical Work','Plumbing','Welding/Hot Work','Excavation','Painting','Scaffolding','Demolition','Confined Space Entry','Crane/Lifting','Roofing','Other'];
 const STATUSES = ['Draft','Submitted','Approved','Active','Closed'];
 const HAZARDS = ['Working at Height','Hot Work','Confined Space','Electrical','Excavation','Chemical Exposure','Noise','Lifting/Crane','Radiation','Asbestos','Fire Risk','Falling Objects'];
 const CONTROLS = ['Area Barricaded','Fire Watch','Gas Testing','Lockout/Tagout','Ventilation','Spotter Assigned','Rescue Plan','Communication Plan','Tool Inspection','Ground Fault Protection','Dust Suppression','Traffic Control'];
@@ -310,11 +324,9 @@ const PPE = ['Hard Hat','Safety Glasses','Steel Toe Boots','High-Vis Vest','Glov
 const uid = () => 'id-' + Math.floor(performance.now()*1000).toString(36) + '-' + Math.floor(performance.now()%100000).toString(36);
 let _pnCounter = 0;
 function genPermitNo(existing){
-  let n; let s;
-  do {
-    n = 10000 + Math.floor((performance.now()*7 + (_pnCounter++)*131) % 90000);
-    s = 'PTW-' + n;
-  } while (existing.some(p=>p.permitNo===s));
+  // PTW-{timestamp} per spec; bump if two permits are created in the same millisecond
+  let s;
+  do { s = 'PTW-' + (Date.now() + (_pnCounter++)); } while (existing.some(p=>p.permitNo===s));
   return s;
 }
 function fmtDate(d){ if(!d) return '—'; const dt=new Date(d+'T00:00:00'); return isNaN(dt)? d : dt.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}); }
@@ -334,9 +346,9 @@ function newPermit(area){
   return {
     id: uid(), permitNo:'', status:'Draft',
     contractorName:'', company:'', contact:'', email:'', workers:1,
-    description:'', location: area && area!=='Overview' ? area : '', workType:'General',
+    description:'', location: area && area!=='Overview' ? area : '', workType:'General Maintenance',
     startDate:'', endDate:'', startTime:'08:00', endTime:'17:00',
-    floors:[{ floor:1, x:null, y:null }],
+    floors:[{ floor:1, x:null, y:null, label:'' }],
     hazards:[], hazardsOther:'', controls:[], controlsOther:'', ppe:[], ppeOther:'',
     supervisor:'', supervisorSig:'', safetyOfficer:'', specialInstructions:'', emergencyProc:'',
     createdAt: nowISO(), updatedAt: nowISO(),
@@ -368,17 +380,26 @@ function exportCSV(permits, filename){
 
 /* ============================= AdminAuth ============================= */
 function AdminAuth({ onOk, onCancel }){
-  const [pin,setPin]=useState(''); const [err,setErr]=useState('');
-  const submit=()=>{ if(pin===store.getPin()){ onOk(); } else { setErr('Incorrect PIN'); setPin(''); } };
+  const [id,setId]=useState(''); const [pw,setPw]=useState(''); const [err,setErr]=useState('');
+  const submit=()=>{
+    const c = store.getAdmin();
+    if(c && id===c.id && pw===c.password){ onOk(); }
+    else { setErr('Incorrect admin ID or password'); setPw(''); }
+  };
   return (
     <div className="overlay" onClick={onCancel}>
       <div className="modal modal-sm" onClick={e=>e.stopPropagation()}>
         <div className="modal-head"><h3>🔒 Admin Approval</h3><button className="x" onClick={onCancel}>×</button></div>
         <div className="modal-body">
-          <p style={{fontSize:'13.5px',color:'var(--muted)',marginBottom:'14px'}}>Enter the admin PIN to approve this permit.</p>
+          <p style={{fontSize:'13.5px',color:'var(--muted)',marginBottom:'14px'}}>Enter the admin credentials to approve this permit.</p>
           <div className="field">
-            <input type="password" value={pin} autoFocus placeholder="••••"
-              onChange={e=>{setPin(e.target.value);setErr('')}}
+            <label>Admin ID</label>
+            <input value={id} autoFocus onChange={e=>{setId(e.target.value);setErr('')}} />
+          </div>
+          <div className="field">
+            <label>Password</label>
+            <input type="password" value={pw} placeholder="••••••••"
+              onChange={e=>{setPw(e.target.value);setErr('')}}
               onKeyDown={e=>e.key==='Enter'&&submit()} />
           </div>
           {err && <div style={{color:'#b91c1c',fontSize:'13px',fontWeight:600}}>{err}</div>}
@@ -395,7 +416,9 @@ function AdminAuth({ onOk, onCancel }){
 /* ============================= Settings ============================= */
 function Settings({ areas, setAreas, onClose, toast }){
   const [newArea,setNewArea]=useState(''); const [parent,setParent]=useState('');
-  const [pin,setPin]=useState(store.getPin());
+  const admin0 = store.getAdmin();
+  const [adminId,setAdminId]=useState(admin0?admin0.id:'');
+  const [adminPw,setAdminPw]=useState(admin0?admin0.password:'');
   const [imgs,setImgs]=useState(imageStorage.getAll());
   const topAreas = areas.filter(a=>!a.parent);
 
@@ -407,6 +430,8 @@ function Settings({ areas, setAreas, onClose, toast }){
     try{ await db.saveAreas(next); toast('Area added'); }catch(e){ toast('Saved locally — cloud sync failed'); }
   };
   const delArea=async(name)=>{
+    const a = areas.find(x=>x.name===name);
+    if(a && a.parent){ toast('Sub-areas are locked and cannot be removed'); return; }
     const next=areas.filter(a=>a.name!==name && a.parent!==name);
     setAreas(next);
     try{ await db.saveAreas(next); await imageStorage.remove(name); setImgs(imageStorage.getAll()); toast('Area removed'); }
@@ -418,7 +443,12 @@ function Settings({ areas, setAreas, onClose, toast }){
     try{ const b64=await imageStorage.fileToBase64(file); await imageStorage.set(area,b64); setImgs(imageStorage.getAll()); toast('Floor plan uploaded & synced'); }
     catch(e){ setImgs(imageStorage.getAll()); toast('Upload failed (image too large or offline?)'); }
   };
-  const savePin=()=>{ store.setPin(pin.trim()); toast(pin.trim()?'Admin PIN saved':'Admin PIN cleared'); };
+  const saveAdmin=async()=>{
+    const id=adminId.trim(), pw=adminPw.trim();
+    const creds = (id && pw) ? { id, password: pw } : null;
+    try{ await db.saveAdmin(creds); toast(creds?'Admin credentials saved':'Admin credentials cleared'); }
+    catch(e){ toast('Saved locally — cloud sync failed'); }
+  };
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -443,9 +473,9 @@ function Settings({ areas, setAreas, onClose, toast }){
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                     <div>
                       <strong>{a.name}</strong>
-                      {a.parent && <span className="chip" style={{marginLeft:8}}>↳ {a.parent}</span>}
+                      {a.parent && <span className="chip" style={{marginLeft:8}}>↳ {a.parent} 🔒</span>}
                     </div>
-                    <button className="btn btn-danger btn-sm" onClick={()=>delArea(a.name)}>Delete</button>
+                    {!a.parent && <button className="btn btn-danger btn-sm" onClick={()=>delArea(a.name)}>Delete</button>}
                   </div>
                   {imgs[a.name]
                     ? <img src={imgs[a.name]} style={{width:'100%',height:80,objectFit:'cover',borderRadius:8}} />
@@ -459,12 +489,14 @@ function Settings({ areas, setAreas, onClose, toast }){
             </div>
           </div>
           <div className="section">
-            <div className="section-title">🔑 Admin PIN (for permit approval)</div>
-            <p className="hint" style={{marginBottom:8}}>When set, approving a permit (status → Approved) requires this PIN. Leave blank to disable.</p>
+            <div className="section-title">🔑 Admin Approval Credentials</div>
+            <p className="hint" style={{marginBottom:8}}>When set, approving a permit (status → Approved) requires this admin ID and password. Leave both blank to disable.</p>
             <div className="toolbar">
-              <input type="text" value={pin} onChange={e=>setPin(e.target.value)} placeholder="e.g. 1234"
-                style={{flex:1,minWidth:160,padding:'10px 12px',border:'1px solid var(--line)',borderRadius:10,fontFamily:'inherit'}} />
-              <button className="btn btn-primary" onClick={savePin}>Save PIN</button>
+              <input type="text" value={adminId} onChange={e=>setAdminId(e.target.value)} placeholder="Admin ID"
+                style={{flex:1,minWidth:140,padding:'10px 12px',border:'1px solid var(--line)',borderRadius:10,fontFamily:'inherit'}} />
+              <input type="password" value={adminPw} onChange={e=>setAdminPw(e.target.value)} placeholder="Password"
+                style={{flex:1,minWidth:140,padding:'10px 12px',border:'1px solid var(--line)',borderRadius:10,fontFamily:'inherit'}} />
+              <button className="btn btn-primary" onClick={saveAdmin}>Save</button>
             </div>
           </div>
         </div>
@@ -478,7 +510,7 @@ function Settings({ areas, setAreas, onClose, toast }){
 function PinPlacer({ area, floors, setFloors }){
   const img = imageStorage.get(area);
   const stageRef = useRef(null);
-  const f = floors[0] || { floor:1, x:null, y:null };
+  const f = floors[0] || { floor:1, x:null, y:null, label:'' };
   const place=(e)=>{
     const r = stageRef.current.getBoundingClientRect();
     const x = ((e.clientX - r.left)/r.width)*100;
@@ -486,7 +518,7 @@ function PinPlacer({ area, floors, setFloors }){
     setFloors([{ ...f, x:Math.round(x*10)/10, y:Math.round(y*10)/10 }]);
   };
   if(!area) return <div className="empty">Select a Location on the Work Details tab first.</div>;
-  if(!img) return <div className="empty">No floor plan uploaded for “{area}”.<br/>Add one in ⚙️ Settings to place pins.</div>;
+  if(!img) return <div className="empty">No floor plan uploaded for "{area}".<br/>Add one in ⚙️ Settings to place pins.</div>;
   return (
     <div>
       <p className="hint" style={{marginBottom:10}}>Click on the floor plan to place the contractor's pin.</p>
@@ -494,11 +526,19 @@ function PinPlacer({ area, floors, setFloors }){
         <img src={img} style={{width:'100%',display:'block'}} />
         {f.x!=null && (
           <div className="pin" style={{left:f.x+'%',top:f.y+'%'}}>
+            {f.label && <div className="lbl">{f.label}</div>}
             <div className="dot"></div>
           </div>
         )}
       </div>
-      {f.x!=null && <div className="hint">Pin at {f.x}%, {f.y}% · <a style={{color:'var(--purple)',cursor:'pointer'}} onClick={()=>setFloors([{...f,x:null,y:null}])}>clear</a></div>}
+      {f.x!=null && (
+        <div style={{marginTop:10,display:'flex',gap:10,alignItems:'center'}}>
+          <div className="hint">Pin at {f.x}%, {f.y}%</div>
+          <input value={f.label||''} onChange={e=>setFloors([{...f,label:e.target.value}])}
+            placeholder="Pin label (optional)" style={{flex:1,padding:'8px 10px',border:'1px solid var(--line)',borderRadius:9,fontSize:13,fontFamily:'inherit'}} />
+          <a style={{color:'var(--purple)',cursor:'pointer',fontSize:13,fontWeight:600}} onClick={()=>setFloors([{...f,x:null,y:null,label:''}])}>Clear</a>
+        </div>
+      )}
     </div>
   );
 }
@@ -515,9 +555,9 @@ function PTWForm({ initial, areas, onSave, onClose, toast }){
   const commit=(permit)=>{ onSave(permit); };
   const trySave=()=>{
     if(!p.contractorName.trim()){ toast('Contractor name is required'); setTab(0); return; }
-    // Admin PIN gate for Approved status
+    // Admin credentials gate for Approved status
     const wasApproved = initial.status==='Approved';
-    if(p.status==='Approved' && !wasApproved && store.getPin()){ setAskPin(true); return; }
+    if(p.status==='Approved' && !wasApproved && store.getAdmin()){ setAskPin(true); return; }
     commit(p);
   };
 
@@ -584,7 +624,7 @@ function PTWForm({ initial, areas, onSave, onClose, toast }){
               </div>
               <div className="field"><label>Special Instructions</label><textarea value={p.specialInstructions} onChange={e=>set('specialInstructions',e.target.value)} /></div>
               <div className="field"><label>Emergency Procedures</label><textarea value={p.emergencyProc} onChange={e=>set('emergencyProc',e.target.value)} /></div>
-              {store.getPin() && <p className="hint">🔒 Setting status to “Approved” will require the admin PIN.</p>}
+              {store.getAdmin() && <p className="hint">🔒 Setting status to "Approved" will require admin credentials.</p>}
             </div>
           )}
         </div>
@@ -600,7 +640,7 @@ function PTWForm({ initial, areas, onSave, onClose, toast }){
 
 /* ============================= PTW Table ============================= */
 function PTWTable({ permits, onEdit, onDelete, onOpen }){
-  const [sort,setSort]=useState({k:'permitNo',dir:1});
+  const [sort,setSort]=useState({k:'permitNo',dir:-1});
   const sorted=useMemo(()=>{
     const arr=[...permits];
     arr.sort((a,b)=>{
@@ -611,7 +651,7 @@ function PTWTable({ permits, onEdit, onDelete, onOpen }){
     return arr;
   },[permits,sort]);
   const th=(k,label)=><th onClick={()=>setSort(s=>({k,dir:s.k===k?-s.dir:1}))}>{label}{sort.k===k?(sort.dir===1?' ▲':' ▼'):''}</th>;
-  if(!permits.length) return <div className="empty">No permits yet. Click “+ New Job” to create one.</div>;
+  if(!permits.length) return <div className="empty">No permits yet. Click "+ New Job" to create one.</div>;
   return (
     <div className="table-wrap">
       <table>
@@ -648,49 +688,75 @@ function PTWTable({ permits, onEdit, onDelete, onOpen }){
   );
 }
 
-/* ============================= Analytics ============================= */
-const PIE_COLORS=['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6','#a855f7','#f97316','#84cc16','#06b6d4'];
-function Analytics({ permits, areas }){
-  const byWork = useMemo(()=>{ const m={}; permits.forEach(p=>m[p.workType]=(m[p.workType]||0)+1); return Object.entries(m).map(([name,value])=>({name,value})); },[permits]);
-  const byStatus = useMemo(()=>{ const m={}; STATUSES.forEach(s=>m[s]=0); permits.forEach(p=>m[p.status]=(m[p.status]||0)+1); return Object.entries(m).map(([name,value])=>({name,value})); },[permits]);
-  const byArea = useMemo(()=>{ const m={}; permits.forEach(p=>{ const w=parseInt(p.workers)||0; m[p.location||'—']=(m[p.location||'—']||0)+w; }); return Object.entries(m).map(([name,workers])=>({name,workers})); },[permits]);
-  if(!permits.length || !ResponsiveContainer) return null;
+/* ============================= Analytics (Highcharts) ============================= */
+const STATUS_HC_COLORS = { Draft:'#6b7280', Submitted:'#eab308', Approved:'#10b981', Active:'#3b82f6', Closed:'#ef4444' };
+function Analytics({ permits, areas, collapsed, toggle }){
+  // Bar chart: permits by area
+  const byArea = useMemo(()=>{
+    const m={}; permits.forEach(p=>{ const loc=p.location||'Other'; m[loc]=(m[loc]||0)+1; });
+    return { cats: Object.keys(m), data: Object.values(m) };
+  },[permits]);
+  const areaOpts = useMemo(()=>({
+    chart:{ type:'bar', height:220, backgroundColor:'transparent' },
+    title:{ text:'Permits by Area', style:{fontSize:'13px',fontWeight:'700'} },
+    xAxis:{ categories:byArea.cats, labels:{style:{fontSize:'11px'}} },
+    yAxis:{ title:{text:null}, allowDecimals:false },
+    legend:{ enabled:false },
+    credits:{ enabled:false },
+    series:[{ name:'Permits', data:byArea.data, color:'#6366f1', borderRadius:4 }],
+  }),[byArea]);
+
+  // Pie chart: status distribution (donut)
+  const byStatus = useMemo(()=>{
+    const m={}; STATUSES.forEach(s=>m[s]=0); permits.forEach(p=>m[p.status]=(m[p.status]||0)+1);
+    return Object.entries(m).map(([name,y])=>({ name, y, color:STATUS_HC_COLORS[name] }));
+  },[permits]);
+  const pieOpts = useMemo(()=>({
+    chart:{ type:'pie', height:220, backgroundColor:'transparent' },
+    title:{ text:'Status Distribution', style:{fontSize:'13px',fontWeight:'700'} },
+    credits:{ enabled:false },
+    plotOptions:{ pie:{ innerSize:'55%', dataLabels:{ format:'{point.name}: {point.y}', style:{fontSize:'11px'} } } },
+    series:[{ name:'Permits', data:byStatus }],
+  }),[byStatus]);
+
+  // Spline chart: weekly permit activity over last 12 weeks
+  const weeklyData = useMemo(()=>{
+    const now = Date.now(); const WEEK = 7*24*60*60*1000;
+    const weeks=[]; for(let i=11;i>=0;i--){ weeks.push({ start: now - (i+1)*WEEK, end: now - i*WEEK }); }
+    return weeks.map((w,i)=>{
+      const count = permits.filter(p=>{ const t=new Date(p.createdAt).getTime(); return t>=w.start && t<w.end; }).length;
+      return count;
+    });
+  },[permits]);
+  const weekCats = useMemo(()=>{
+    const now = Date.now(); const WEEK = 7*24*60*60*1000;
+    return Array.from({length:12},(_,i)=>{
+      const d = new Date(now - (12-i)*WEEK); return d.toLocaleDateString(undefined,{day:'2-digit',month:'short'});
+    });
+  },[permits]);
+  const splineOpts = useMemo(()=>({
+    chart:{ type:'spline', height:220, backgroundColor:'transparent' },
+    title:{ text:'Weekly Permit Activity (12 weeks)', style:{fontSize:'13px',fontWeight:'700'} },
+    xAxis:{ categories:weekCats, labels:{style:{fontSize:'10px'}} },
+    yAxis:{ title:{text:null}, allowDecimals:false },
+    legend:{ enabled:false },
+    credits:{ enabled:false },
+    series:[{ name:'Permits Created', data:weeklyData, color:'#6366f1', lineWidth:2.5, marker:{radius:3} }],
+  }),[weeklyData,weekCats]);
+
+  if(!permits.length || !window.Highcharts) return null;
   return (
     <div className="section">
-      <div className="section-title">📊 Analytics</div>
-      <div className="grid charts-grid">
-        <div className="card">
-          <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Work Type Distribution</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={byWork} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label>
-                {byWork.map((e,i)=><Cell key={i} fill={PIE_COLORS[i%PIE_COLORS.length]} />)}
-              </Pie>
-              <Tooltip /><Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="card">
-          <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Status Breakdown</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={byStatus}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" fontSize={11} /><YAxis allowDecimals={false} fontSize={11} /><Tooltip />
-              <Bar dataKey="value" radius={[6,6,0,0]}>{byStatus.map((e,i)=><Cell key={i} fill={PIE_COLORS[i%PIE_COLORS.length]} />)}</Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="card">
-          <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Area Utilization (workers)</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={byArea}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" fontSize={11} /><YAxis allowDecimals={false} fontSize={11} /><Tooltip />
-              <Bar dataKey="workers" fill="#6366f1" radius={[6,6,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="section-title" style={{cursor:'pointer'}} onClick={toggle}>
+        📊 Analytics <span style={{fontSize:12,marginLeft:6,color:'var(--muted)'}}>{collapsed?'▶ Show':'▼ Hide'}</span>
       </div>
+      {!collapsed && (
+        <div className="grid charts-grid">
+          <div className="card"><HChart options={areaOpts} /></div>
+          <div className="card"><HChart options={pieOpts} /></div>
+          <div className="card"><HChart options={splineOpts} /></div>
+        </div>
+      )}
     </div>
   );
 }
@@ -720,12 +786,12 @@ function FloorPlan({ area, permits, onOpenPermit, fullscreen, setFullscreen }){
           {pinned.map(p=>(
             <div key={p.id} className="pin" style={{left:p.floors[0].x+'%',top:p.floors[0].y+'%'}}
               onClick={e=>{e.stopPropagation();onOpenPermit(p);}} onMouseDown={e=>e.stopPropagation()}>
-              <div className="lbl">{p.contractorName||p.permitNo}</div>
+              <div className="lbl">{p.floors[0].label || p.contractorName || p.permitNo}</div>
               <div className="dot"></div>
             </div>
           ))}
         </div>
-      ) : <div className="fp-empty">🗺️<div>No floor plan for “{area}”. Upload one in ⚙️ Settings.</div></div>}
+      ) : <div className="fp-empty">🗺️<div>No floor plan for "{area}". Upload one in ⚙️ Settings.</div></div>}
     </div>
   );
 
@@ -864,13 +930,14 @@ function App(){
   const [fullscreen,setFullscreen]=useState(false);
   const [syncing,setSyncing]=useState(true);
   const [online,setOnline]=useState(true);
+  const [analyticsCollapsed,setAnalyticsCollapsed]=useState(false);
   const [toast,toastNode]=useToast();
 
   // Initial cloud load: pull permits, areas, and floor images so every device shows the same data.
   const refresh=useCallback(async()=>{
     setSyncing(true);
     try{
-      const [p,a] = await Promise.all([db.loadPermits(), db.loadAreas(), imageStorage.pull()]);
+      const [p,a] = await Promise.all([db.loadPermits(), db.loadAreas(), imageStorage.pull(), db.loadAdmin()]);
       setPermits(p); setAreas(a); setOnline(true);
     }catch(e){
       console.error('Cloud load failed:',e); setOnline(false);
@@ -953,14 +1020,14 @@ function App(){
           const subs=subAreas(a.name);
           return (
             <div key={a.name}>
-              <NavItem name={a.name} count={permitsInArea(a.name).length} active={selected===a.name}
+              <NavItem name={a.name} count={workersInArea(a.name)+'/'+permitsInArea(a.name).length} active={selected===a.name}
                 caret={subs.length? !!expanded[a.name]: null}
                 onCaret={()=>setExpanded(e=>({...e,[a.name]:!e[a.name]}))}
                 onClick={()=>{setSelected(a.name);setFullscreen(false);}} />
               {subs.length>0 && expanded[a.name] && (
                 <div className="nav-sub">
                   {subs.map(s=>(
-                    <NavItem key={s.name} name={s.name} count={permitsInArea(s.name).length} active={selected===s.name}
+                    <NavItem key={s.name} name={s.name} count={workersInArea(s.name)+'/'+permitsInArea(s.name).length} active={selected===s.name}
                       onClick={()=>{setSelected(s.name);setFullscreen(false);}} />
                   ))}
                 </div>
@@ -986,7 +1053,7 @@ function App(){
             </span>
             <button className="btn btn-light btn-icon" title="Refresh from cloud" onClick={refresh}>⟳</button>
             <button className="btn btn-light btn-icon" title="Settings" onClick={()=>setShowSettings(true)}>⚙️</button>
-            <button className="btn btn-red" onClick={openNew}>+ New Job</button>
+            <button className="btn btn-primary" onClick={openNew}>＋ New Job</button>
           </div>
         </div>
 
@@ -1014,8 +1081,8 @@ function App(){
                 <div className="stat"><div className="n">{topAreas.length}</div><div className="l">Areas</div></div>
               </div>
 
-              {/* Analytics */}
-              <Analytics permits={permits} areas={areas} />
+              {/* Analytics (collapsible) */}
+              <Analytics permits={permits} areas={areas} collapsed={analyticsCollapsed} toggle={()=>setAnalyticsCollapsed(c=>!c)} />
 
               {/* Toolbar */}
               <div className="toolbar">
