@@ -375,6 +375,7 @@ function genPermitNo(existing){
   return s;
 }
 function fmtDate(d){ if(!d) return '—'; const dt=new Date(d+'T00:00:00'); return isNaN(dt)? d : dt.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtDateTime(iso){ if(!iso) return '—'; const dt=new Date(iso); return isNaN(dt)? iso : dt.toLocaleString(undefined,{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
 function nowISO(){ return new Date().toISOString(); }
 
 function expiryState(p){
@@ -387,6 +388,15 @@ function expiryState(p){
   if(diffH <= 24) return 'expiring';
   return 'ok';
 }
+// A permit counts as "on-site today" if today falls within its date range and it isn't a draft/closed.
+function isActiveToday(p){
+  if(['Draft','Closed'].includes(p.status)) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const t = today.getTime();
+  const s = p.startDate ? new Date(p.startDate+'T00:00:00').getTime() : -Infinity;
+  const e = p.endDate ? new Date(p.endDate+'T23:59:59').getTime() : Infinity;
+  return t>=s && t<=e;
+}
 function newPermit(area){
   return {
     id: uid(), permitNo:'', status:'Draft',
@@ -396,6 +406,7 @@ function newPermit(area){
     floors:[{ floor:1, x:null, y:null, label:'' }],
     hazards:[], hazardsOther:'', controls:[], controlsOther:'', ppe:[], ppeOther:'',
     supervisor:'', supervisorSig:'', safetyOfficer:'', specialInstructions:'', emergencyProc:'',
+    approvedBy:'', approvedAt:'',
     createdAt: nowISO(), updatedAt: nowISO(),
   };
 }
@@ -423,12 +434,98 @@ function exportCSV(permits, filename){
   URL.revokeObjectURL(url);
 }
 
+/* ============================= Print / PDF a single permit ============================= */
+function printPermit(p){
+  const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const chips = (arr,other) => {
+    const items = [...(arr||[]), ...(other?[other]:[])];
+    return items.length ? items.map(x=>`<span class="chip">${esc(x)}</span>`).join('') : '<span class="muted">None</span>';
+  };
+  const floorImg = imageStorage.get(p.location);
+  const pin = p.floors && p.floors[0];
+  const hasPin = floorImg && pin && pin.x!=null;
+  const plan = hasPin ? `
+    <div class="plan">
+      <div class="plan-inner">
+        <img src="${floorImg}" />
+        <div class="pin" style="left:${pin.x}%;top:${pin.y}%"><div class="lbl">${esc(p.contractorName||p.permitNo)}</div><div class="dot"></div></div>
+      </div>
+    </div>` : '';
+  // QR encodes a deep link back to this app so the printed permit links to the live record.
+  const appUrl = location.origin + location.pathname + '#permit=' + encodeURIComponent(p.id);
+  const qr = 'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=' + encodeURIComponent(appUrl);
+  const ex = expiryState(p);
+  const statusNote = ex==='expired' ? '<span class="warn">EXPIRED</span>' : ex==='expiring' ? '<span class="warn">EXPIRING &lt;24h</span>' : '';
+  const kv = (k,v)=>`<tr><td class="k">${esc(k)}</td><td>${esc(v)||'—'}</td></tr>`;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Permit ${esc(p.permitNo)}</title>
+  <style>
+    *{box-sizing:border-box} body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;margin:0;padding:28px;font-size:12.5px}
+    .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #6366f1;padding-bottom:14px;margin-bottom:16px}
+    .head h1{font-size:22px;margin:0} .head .sys{color:#64748b;font-size:12px;margin-top:2px}
+    .pno{font-size:16px;font-weight:800;margin-top:6px}
+    .status{display:inline-block;padding:3px 12px;border-radius:999px;font-weight:800;font-size:12px;background:#dbeafe;color:#1d4ed8;text-transform:uppercase}
+    .warn{display:inline-block;margin-left:8px;padding:3px 10px;border-radius:6px;background:#fee2e2;color:#b91c1c;font-weight:800;font-size:11px}
+    .qr{text-align:center} .qr img{width:110px;height:110px} .qr div{font-size:9px;color:#94a3b8;margin-top:2px}
+    h2{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:#4f46e5;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin:18px 0 8px}
+    table{width:100%;border-collapse:collapse} td{padding:4px 8px;vertical-align:top;border-bottom:1px solid #f1f5f9}
+    td.k{color:#64748b;font-weight:700;width:170px}
+    .chip{display:inline-block;background:#eef2ff;color:#4f46e5;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:600;margin:2px 3px 2px 0}
+    .muted{color:#94a3b8} .cols{display:flex;gap:24px} .cols>div{flex:1}
+    .plan{margin-top:8px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+    .plan-inner{position:relative} .plan-inner img{width:100%;display:block}
+    .pin{position:absolute;transform:translate(-50%,-100%)}
+    .pin .dot{width:18px;height:18px;background:#dc2626;border:2px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+    .pin .lbl{position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%);background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+    .sign{display:flex;gap:30px;margin-top:30px} .sign>div{flex:1;border-top:1px solid #94a3b8;padding-top:5px;color:#64748b;font-size:11px}
+    .foot{margin-top:24px;color:#94a3b8;font-size:10px;text-align:center;border-top:1px solid #e2e8f0;padding-top:8px}
+    @media print{ body{padding:0} @page{margin:14mm} }
+  </style></head><body>
+    <div class="head">
+      <div>
+        <h1>Permit to Work</h1>
+        <div class="sys">Contractor Management — DUS Fulfillment Center</div>
+        <div class="pno">${esc(p.permitNo)} &nbsp; <span class="status">${esc(p.status)}</span> ${statusNote}</div>
+      </div>
+      <div class="qr"><img src="${qr}" alt="QR"/><div>Scan for live record</div></div>
+    </div>
+    <div class="cols">
+      <div>
+        <h2>Contractor</h2>
+        <table>${kv('Name',p.contractorName)}${kv('Company',p.company)}${kv('Contact',p.contact)}${kv('Email',p.email)}${kv('No. of Workers',p.workers)}</table>
+      </div>
+      <div>
+        <h2>Work Details</h2>
+        <table>${kv('Work Type',p.workType)}${kv('Location',p.location)}${kv('Start',fmtDate(p.startDate)+' '+(p.startTime||''))}${kv('End',fmtDate(p.endDate)+' '+(p.endTime||''))}</table>
+      </div>
+    </div>
+    <h2>Work Description</h2><div>${esc(p.description)||'<span class="muted">—</span>'}</div>
+    <h2>Hazards</h2><div>${chips(p.hazards,p.hazardsOther)}</div>
+    <h2>Safety Controls</h2><div>${chips(p.controls,p.controlsOther)}</div>
+    <h2>PPE Required</h2><div>${chips(p.ppe,p.ppeOther)}</div>
+    ${p.specialInstructions?`<h2>Special Instructions</h2><div>${esc(p.specialInstructions)}</div>`:''}
+    ${p.emergencyProc?`<h2>Emergency Procedures</h2><div>${esc(p.emergencyProc)}</div>`:''}
+    ${plan?`<h2>Location — ${esc(p.location)}</h2>${plan}`:''}
+    <h2>Authorization</h2>
+    <table>${kv('Safety Officer',p.safetyOfficer)}${p.approvedBy?kv('Approved By',p.approvedBy):''}${p.approvedAt?kv('Approved At',fmtDateTime(p.approvedAt)):''}</table>
+    <div class="sign">
+      <div>Supervisor: ${esc(p.supervisor)||''}<br/>Signature</div>
+      <div>Safety Officer<br/>Signature</div>
+      <div>Date</div>
+    </div>
+    <div class="foot">Printed ${fmtDateTime(nowISO())} · This permit must be displayed at the work location.</div>
+    <script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>
+  </body></html>`;
+  const w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups to print the permit.'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
 /* ============================= AdminAuth ============================= */
 function AdminAuth({ onOk, onCancel }){
   const [id,setId]=useState(''); const [pw,setPw]=useState(''); const [err,setErr]=useState('');
   const submit=()=>{
     const c = store.getAdmin();
-    if(c && id===c.id && pw===c.password){ onOk(); }
+    if(c && id===c.id && pw===c.password){ onOk(c.id); }
     else { setErr('Incorrect admin ID or password'); setPw(''); }
   };
   return (
@@ -599,12 +696,15 @@ function PTWForm({ initial, areas, onSave, onClose, toast }){
   const toggle=(k,v)=>setP(prev=>({...prev,[k]: prev[k].includes(v)? prev[k].filter(x=>x!==v):[...prev[k],v]}));
 
   const commit=(permit)=>{ onSave(permit); };
+  // Stamp who approved and when, the moment a permit first becomes Approved.
+  const stampApproval=(permit, approver)=>({ ...permit, approvedBy: approver, approvedAt: nowISO() });
   const trySave=()=>{
     if(!p.contractorName.trim()){ toast('Contractor name is required'); setTab(0); return; }
-    // Admin credentials gate for Approved status
     const wasApproved = initial.status==='Approved';
-    if(p.status==='Approved' && !wasApproved && store.getAdmin()){ setAskPin(true); return; }
-    commit(p);
+    const newlyApproved = p.status==='Approved' && !wasApproved;
+    if(newlyApproved && store.getAdmin()){ setAskPin(true); return; }   // admin gate → approver captured on auth
+    // No admin credentials configured: still record the approval event (by supervisor, else "Unverified").
+    commit(newlyApproved ? stampApproval(p, p.supervisor || 'Unverified') : p);
   };
 
   const CheckGrid=({options,field,other,otherField})=>(
@@ -679,7 +779,7 @@ function PTWForm({ initial, areas, onSave, onClose, toast }){
           <button className="btn btn-primary" onClick={trySave}>Save Permit</button>
         </div>
       </div>
-      {askPin && <AdminAuth onOk={()=>{setAskPin(false);commit(p);}} onCancel={()=>setAskPin(false)} />}
+      {askPin && <AdminAuth onOk={(adminId)=>{setAskPin(false);commit(stampApproval(p, adminId));}} onCancel={()=>setAskPin(false)} />}
     </div>
   );
 }
@@ -942,6 +1042,8 @@ function PermitDetail({ p, onClose, onEdit }){
             <div className="kv">
               <Row k="Supervisor" v={p.supervisor} /><Row k="Signature" v={p.supervisorSig} />
               <Row k="Safety Officer" v={p.safetyOfficer} />
+              {p.approvedBy && <Row k="Approved By" v={p.approvedBy} />}
+              {p.approvedAt && <Row k="Approved At" v={fmtDateTime(p.approvedAt)} />}
               <Row k="Special Instructions" v={p.specialInstructions} />
               <Row k="Emergency Procedures" v={p.emergencyProc} />
             </div>
@@ -949,6 +1051,7 @@ function PermitDetail({ p, onClose, onEdit }){
         </div>
         <div className="modal-foot">
           <button className="btn btn-light" onClick={onClose}>Close</button>
+          <button className="btn btn-ghost" onClick={()=>printPermit(p)}>🖨 Print / PDF</button>
           <button className="btn btn-primary" onClick={()=>onEdit(p)}>Edit</button>
         </div>
       </div>
@@ -981,6 +1084,44 @@ function ContractorCard({ p, onOpen, onEdit, onDelete }){
         </div>
       </div>
     </div>
+  );
+}
+
+/* ============================= Today — live shift view ============================= */
+function TodayView({ todayList, areas, topAreas, onOpen, onEdit, onDelete, onArea }){
+  const today = new Date();
+  const dateLabel = today.toLocaleDateString(undefined,{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const totalWorkers = todayList.reduce((s,p)=>s+(parseInt(p.workers)||0),0);
+  // Group active permits by their location; keep only areas that have work today.
+  const byArea = {};
+  todayList.forEach(p=>{ const loc=p.location||'Unassigned'; (byArea[loc]=byArea[loc]||[]).push(p); });
+  const areaNames = Object.keys(byArea).sort();
+  return (
+    <>
+      <div className="section grid stats-row">
+        <div className="stat"><div className="n">{todayList.length}</div><div className="l">Permits Active Today</div></div>
+        <div className="stat"><div className="n">{totalWorkers}</div><div className="l">Workers On-Site</div></div>
+        <div className="stat"><div className="n">{areaNames.length}</div><div className="l">Areas With Work</div></div>
+      </div>
+      <div className="section">
+        <div className="section-title">📅 Today — {dateLabel}</div>
+        {!todayList.length && <div className="empty">No permits are active today. Enjoy the quiet shift. ☕</div>}
+      </div>
+      {areaNames.map(area=>(
+        <div className="section" key={area}>
+          <div className="section-title" style={{cursor: area!=='Unassigned'?'pointer':'default'}}
+            onClick={()=>{ if(area!=='Unassigned') onArea(area); }}>
+            🗺️ {area} <span style={{fontSize:12,color:'var(--muted)',fontWeight:600}}>
+              · {byArea[area].length} job(s) · {byArea[area].reduce((s,p)=>s+(parseInt(p.workers)||0),0)} worker(s)
+              {area!=='Unassigned' && ' · open floor plan →'}
+            </span>
+          </div>
+          <div className="grid cards-grid">
+            {byArea[area].map(p=><ContractorCard key={p.id} p={p} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} />)}
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -1084,6 +1225,7 @@ function App(){
 
   const expiredList=permits.filter(p=>expiryState(p)==='expired');
   const expiringList=permits.filter(p=>expiryState(p)==='expiring');
+  const todayList=permits.filter(isActiveToday);
 
   // Icons follow the Quick Apps layout: chart for Overview, buildings for areas,
   // folder for areas with sub-areas, pin for sub-areas, roof/parking specials.
@@ -1107,6 +1249,7 @@ function App(){
       <div className="sidebar">
         <div className="brand">PTW</div>
         <NavItem name="Overview" icon="📊" count={total||null} active={selected==='Overview'} onClick={()=>{setSelected('Overview');setFullscreen(false);}} />
+        <NavItem name="Today" icon="📅" count={todayList.length||null} active={selected==='Today'} onClick={()=>{setSelected('Today');setFullscreen(false);}} />
         {topAreas.map(a=>{
           const subs=subAreas(a.name);
           const w=workersInArea(a.name);
@@ -1236,6 +1379,10 @@ function App(){
                 </div>
               </div>
             </>
+          ) : selected==='Today' ? (
+            /* ===== Today — live shift view ===== */
+            <TodayView todayList={todayList} areas={areas} topAreas={topAreas}
+              onOpen={setDetail} onEdit={openEdit} onDelete={delPermit} onArea={setSelected} />
           ) : (
             /* ===== Area detail ===== */
             <>
