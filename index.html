@@ -220,23 +220,32 @@ async function supaFetch(table, method, body, query, upsert){
   return t ? JSON.parse(t) : null;
 }
 
-/* ============================= imageStorage (base64 in Supabase floor_images + localStorage cache) ============================= */
+/* ============================= imageStorage (base64 in Supabase floor_images + in-memory + localStorage cache) ============================= */
+// Supabase is the source of truth. We keep an in-memory cache for synchronous render reads, and mirror
+// to localStorage on a best-effort basis — localStorage tops out ~5MB, so a large floor plan can't live
+// there, but the in-memory cache and cloud still work. Large images are downscaled before storage.
 const imageStorage = {
   key: 'ptw_floor_images',
-  getAll(){ try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch { return {}; } },
-  get(area){ return this.getAll()[area] || null; },        // synchronous read from cache (used during render)
-  _writeLocal(all){ localStorage.setItem(this.key, JSON.stringify(all)); },
-  async pull(){                                             // load all images from cloud into the local cache
+  _mem: {},                                                // in-memory cache (survives localStorage quota limits)
+  _lsAll(){ try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch { return {}; } },
+  getAll(){ return { ...this._lsAll(), ...this._mem }; },
+  get(area){ return this._mem[area] || this._lsAll()[area] || null; },   // synchronous read (used during render)
+  _writeLocal(all){ try { localStorage.setItem(this.key, JSON.stringify(all)); } catch(e){ /* quota exceeded — in-memory cache still holds it */ } },
+  async pull(){                                            // load all images from cloud into the caches
     const rows = await supaFetch('floor_images','GET',null,'?select=area,image');
     const all = {}; (rows||[]).forEach(r=>{ all[r.area] = r.image; });
-    this._writeLocal(all); return all;
+    this._mem = all;                                        // always keep in memory so render works
+    this._writeLocal(all);                                  // best-effort persistent cache
+    return all;
   },
   async set(area, base64){                                  // cache immediately, then persist to cloud
-    const all = this.getAll(); all[area] = base64; this._writeLocal(all);
+    this._mem[area] = base64;                               // memory first so the pin/floor plan renders right away
+    this._writeLocal(this.getAll());                        // best-effort — won't block the cloud upload if it fails
     await supaFetch('floor_images','POST',{ area, image: base64 },'', true);
   },
   async remove(area){
-    const all = this.getAll(); delete all[area]; this._writeLocal(all);
+    delete this._mem[area];
+    const ls = this._lsAll(); delete ls[area]; this._writeLocal(ls);
     await supaFetch('floor_images','DELETE',null,`?area=eq.${area}`);
   },
   fileToBase64(file){
@@ -245,6 +254,30 @@ const imageStorage = {
       r.onload = ()=>resolve(r.result);
       r.onerror = reject;
       r.readAsDataURL(file);
+    });
+  },
+  // Downscale big images so they fit storage/upload limits while staying sharp enough to zoom.
+  async processImage(file){
+    const dataUrl = await this.fileToBase64(file);
+    try { return await this._maybeDownscale(dataUrl); }
+    catch { return dataUrl; }                               // non-raster (e.g. SVG) or decode issue — keep original
+  },
+  _maybeDownscale(dataUrl){
+    return new Promise((resolve, reject)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxEdge = 3000;
+        const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+        const tooBig = dataUrl.length > 1_800_000;          // ~1.3MB of binary → re-encode to shrink
+        if(scale === 1 && !tooBig){ resolve(dataUrl); return; }   // already small enough — keep as-is
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
     });
   }
 };
@@ -430,9 +463,19 @@ function Settings({ areas, setAreas, onClose, toast }){
   };
   const uploadImg=async(area,file)=>{
     if(!file) return;
-    toast('Uploading floor plan…');
-    try{ const b64=await imageStorage.fileToBase64(file); await imageStorage.set(area,b64); setImgs(imageStorage.getAll()); toast('Floor plan uploaded & synced'); }
-    catch(e){ setImgs(imageStorage.getAll()); toast('Upload failed (image too large or offline?)'); }
+    toast('Processing floor plan…');
+    try{
+      const b64=await imageStorage.processImage(file);      // downscales large images before storing
+      await imageStorage.set(area,b64);
+      setImgs(imageStorage.getAll());
+      toast('Floor plan uploaded & synced');
+    }
+    catch(e){
+      console.error('Floor plan upload failed:',e);
+      setImgs(imageStorage.getAll());
+      const msg = /Supabase/.test(e && e.message||'') ? 'Cloud upload failed — check connection' : 'Upload failed: '+((e&&e.message)||'unknown error');
+      toast(msg);
+    }
   };
   const saveAdmin=async()=>{
     const id=adminId.trim(), pw=adminPw.trim();
