@@ -256,7 +256,8 @@ const imageStorage = {
       r.readAsDataURL(file);
     });
   },
-  // Downscale big images so they fit storage/upload limits while staying sharp enough to zoom.
+  // Keep floor plans at full quality — Supabase accepts ~20MB, so we only downscale genuinely
+  // enormous images. Fine CAD/electrical lines stay crisp; PNG line art is re-encoded losslessly.
   async processImage(file){
     const dataUrl = await this.fileToBase64(file);
     try { return await this._maybeDownscale(dataUrl); }
@@ -266,15 +267,21 @@ const imageStorage = {
     return new Promise((resolve, reject)=>{
       const img = new Image();
       img.onload = ()=>{
-        const maxEdge = 3000;
-        const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
-        const tooBig = dataUrl.length > 1_800_000;          // ~1.3MB of binary → re-encode to shrink
-        if(scale === 1 && !tooBig){ resolve(dataUrl); return; }   // already small enough — keep as-is
+        const MAX_EDGE = 6000;                              // allow high resolution so thin lines stay sharp when zoomed
+        const MAX_BYTES = 12_000_000;                       // well under Supabase's ~20MB limit
+        const longest = Math.max(img.width, img.height);
+        if(longest <= MAX_EDGE && dataUrl.length <= MAX_BYTES){ resolve(dataUrl); return; }  // keep original — perfect quality
+        const scale = Math.min(1, MAX_EDGE / longest);
         const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, w, h);
+        const isPng = /^data:image\/png/i.test(dataUrl);
+        let out = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.92);  // lossless for line art
+        if(out.length > MAX_BYTES) out = canvas.toDataURL('image/jpeg', 0.9);                     // last resort if still huge
+        resolve(out);
       };
       img.onerror = reject;
       img.src = dataUrl;
@@ -799,23 +806,45 @@ function FloorPlan({ area, permits, onOpenPermit, fullscreen, setFullscreen }){
   const img = imageStorage.get(area);
   const [zoom,setZoom]=useState(1);
   const [pan,setPan]=useState({x:0,y:0});
+  const [nat,setNat]=useState(null);          // natural {w,h} of the loaded image
+  const [box,setBox]=useState(null);          // stage {w,h} in px
   const drag=useRef(null);
   const stageRef=useRef(null);
   const pinned = permits.filter(p=>p.floors && p.floors[0] && p.floors[0].x!=null);
 
-  const onWheel=(e)=>{ e.preventDefault(); const d=e.deltaY<0?0.15:-0.15; setZoom(z=>Math.min(5,Math.max(0.4,z+d))); };
+  // Measure the stage so we can fit the image inside it (recomputes on resize + fullscreen toggle).
+  useEffect(()=>{
+    const measure=()=>{ if(stageRef.current){ const r=stageRef.current.getBoundingClientRect(); setBox({w:r.width,h:r.height}); } };
+    measure();
+    window.addEventListener('resize',measure);
+    return ()=>window.removeEventListener('resize',measure);
+  },[fullscreen,img]);
+
+  // Base scale = contain the whole plan in the stage. Same normalized layout in embedded AND fullscreen,
+  // so a pin at (x%,y%) of the image lands on the identical spot in both views. User zoom multiplies this.
+  const fit = (nat && box) ? Math.min(box.w/nat.w, box.h/nat.h) : 1;
+  const dispW = nat ? nat.w*fit : 0, dispH = nat ? nat.h*fit : 0;
+  const baseX = box ? (box.w-dispW)/2 : 0, baseY = box ? (box.h-dispH)/2 : 0;   // center it
+
+  const onWheel=(e)=>{ e.preventDefault(); const d=e.deltaY<0?0.15:-0.15; setZoom(z=>Math.min(6,Math.max(0.5,z+d))); };
   const onDown=(e)=>{ drag.current={sx:e.clientX,sy:e.clientY,px:pan.x,py:pan.y}; };
   const onMove=(e)=>{ if(!drag.current) return; setPan({x:drag.current.px+(e.clientX-drag.current.sx),y:drag.current.py+(e.clientY-drag.current.sy)}); };
   const onUp=()=>{ drag.current=null; };
   const reset=()=>{ setZoom(1); setPan({x:0,y:0}); };
 
+  // Outer transform: center-in-stage (pan) + user zoom, anchored at the image center so zoom stays centered.
   const stage = (
     <div ref={stageRef} className={'fp-stage'+(drag.current?' dragging':'')}
       onWheel={onWheel} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
       style={fullscreen?{height:'calc(100vh - 58px)',background:'#0b1220'}:null}>
       {img ? (
-        <div className="fp-inner" style={{transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`}}>
-          <img className="fp-img" src={img} draggable={false} />
+        <div className="fp-inner" style={{
+              left: baseX+pan.x, top: baseY+pan.y, width: dispW, height: dispH,
+              transform:`scale(${zoom})`, transformOrigin:'center center'
+            }}>
+          <img className="fp-img" src={img} draggable={false}
+            style={{width:'100%',height:'100%'}}
+            onLoad={e=>setNat({w:e.target.naturalWidth,h:e.target.naturalHeight})} />
           {pinned.map(p=>(
             <div key={p.id} className="pin" style={{left:p.floors[0].x+'%',top:p.floors[0].y+'%'}}
               onClick={e=>{e.stopPropagation();onOpenPermit(p);}} onMouseDown={e=>e.stopPropagation()}>
