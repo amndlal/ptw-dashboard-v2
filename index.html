@@ -428,14 +428,6 @@ function Settings({ areas, setAreas, onClose, toast }){
     setAreas(next); setNewArea(''); setParent('');
     try{ await db.saveAreas(next); toast('Area added'); }catch(e){ toast('Saved locally — cloud sync failed'); }
   };
-  const delArea=async(name)=>{
-    const a = areas.find(x=>x.name===name);
-    if(a && a.parent){ toast('Sub-areas are locked and cannot be removed'); return; }
-    const next=areas.filter(a=>a.name!==name && a.parent!==name);
-    setAreas(next);
-    try{ await db.saveAreas(next); await imageStorage.remove(name); setImgs(imageStorage.getAll()); toast('Area removed'); }
-    catch(e){ setImgs(imageStorage.getAll()); toast('Removed locally — cloud sync failed'); }
-  };
   const uploadImg=async(area,file)=>{
     if(!file) return;
     toast('Uploading floor plan…');
@@ -474,13 +466,12 @@ function Settings({ areas, setAreas, onClose, toast }){
                       <strong>{a.name}</strong>
                       {a.parent && <span className="chip" style={{marginLeft:8}}>↳ {a.parent} 🔒</span>}
                     </div>
-                    {!a.parent && <button className="btn btn-danger btn-sm" onClick={()=>delArea(a.name)}>Delete</button>}
                   </div>
                   {imgs[a.name]
                     ? <img src={imgs[a.name]} style={{width:'100%',height:80,objectFit:'cover',borderRadius:8}} />
                     : <div style={{height:40,display:'flex',alignItems:'center',color:'var(--muted)',fontSize:12}}>No floor plan</div>}
                   <label className="btn btn-light btn-sm" style={{display:'inline-block',marginTop:8,cursor:'pointer'}}>
-                    Upload floor plan
+                    {imgs[a.name] ? 'Update floor plan' : 'Upload floor plan'}
                     <input type="file" accept="image/*" hidden onChange={e=>uploadImg(a.name,e.target.files[0])} />
                   </label>
                 </div>
