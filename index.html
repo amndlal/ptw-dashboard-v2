@@ -13,6 +13,7 @@
     --purple:#6366f1; --purple-dark:#4f46e5; --bg:#f8fafc; --card:#ffffff;
     --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
     --yellow-a:#eab308; --yellow-b:#facc15; --brown:#422006;
+    --red:#dc2626;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -138,9 +139,14 @@
   .fp-img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
   .fp-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;flex-direction:column;gap:8px}
   .pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;z-index:5}
-  .pin .dot{width:20px;height:20px;background:var(--purple);border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.4)}
-  .pin .lbl{position:absolute;left:50%;top:-8px;transform:translate(-50%,-100%);background:#0f172a;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:7px;white-space:nowrap;pointer-events:none}
-  .pin .lbl:after{content:'';position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0f172a}
+  .pin .dot{position:relative;width:28px;height:28px;background:var(--red);border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 10px rgba(0,0,0,.55);z-index:2}
+  .pin .dot:after{content:'';position:absolute;left:50%;top:50%;width:9px;height:9px;background:#fff;border-radius:50%;transform:translate(-50%,-50%)}
+  .pin:hover .dot{filter:brightness(1.1)}
+  .pin .lbl{position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);background:var(--red);color:#fff;font-size:12px;font-weight:800;padding:4px 10px;border-radius:8px;white-space:nowrap;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.35);letter-spacing:.2px;z-index:3}
+  .pin .lbl:after{content:'';position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--red)}
+  /* pulsing halo so occupied locations stand out on busy floor plans */
+  .pin .halo{position:absolute;left:50%;top:50%;width:28px;height:28px;transform:translate(-50%,-50%);border-radius:50%;background:var(--red);opacity:.3;animation:pin-pulse 1.8s ease-out infinite;pointer-events:none;z-index:1}
+  @keyframes pin-pulse{0%{transform:translate(-50%,-50%) scale(.7);opacity:.5}70%{transform:translate(-50%,-50%) scale(2.2);opacity:0}100%{opacity:0}}
 
   /* Modal / overlay */
   .overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:34px 16px;overflow-y:auto}
@@ -848,7 +854,8 @@ function FloorPlan({ area, permits, onOpenPermit, fullscreen, setFullscreen }){
           {pinned.map(p=>(
             <div key={p.id} className="pin" style={{left:p.floors[0].x+'%',top:p.floors[0].y+'%'}}
               onClick={e=>{e.stopPropagation();onOpenPermit(p);}} onMouseDown={e=>e.stopPropagation()}>
-              <div className="lbl">{p.floors[0].label || p.contractorName || p.permitNo}</div>
+              <div className="lbl">{p.contractorName || p.floors[0].label || p.permitNo}</div>
+              <span className="halo"></span>
               <div className="dot"></div>
             </div>
           ))}
@@ -981,7 +988,9 @@ function ContractorCard({ p, onOpen, onEdit, onDelete }){
 function App(){
   const [permits,setPermits]=useState(store.cachedPermits());
   const [areas,setAreas]=useState(store.cachedAreas());
-  const [selected,setSelected]=useState('Overview');
+  // Navigation history so users can move back/forward through the views they've visited.
+  const [nav,setNav]=useState({stack:['Overview'], idx:0});
+  const selected = nav.stack[nav.idx];
   const [expanded,setExpanded]=useState({});
   const [showForm,setShowForm]=useState(false);
   const [editing,setEditing]=useState(null);
@@ -994,6 +1003,21 @@ function App(){
   const [online,setOnline]=useState(true);
   const [analyticsCollapsed,setAnalyticsCollapsed]=useState(false);
   const [toast,toastNode]=useToast();
+
+  // Navigate to a view: truncate any forward history, push the new view, and move to it.
+  // No-op if it's already the current view (avoids duplicate history entries).
+  const navigate=useCallback((view)=>{
+    setNav(n=>{
+      if(n.stack[n.idx]===view) return n;
+      const stack=n.stack.slice(0,n.idx+1); stack.push(view);
+      return { stack, idx: stack.length-1 };
+    });
+  },[]);
+  const goBack=useCallback(()=>setNav(n=>n.idx>0?{...n,idx:n.idx-1}:n),[]);
+  const goForward=useCallback(()=>setNav(n=>n.idx<n.stack.length-1?{...n,idx:n.idx+1}:n),[]);
+  const canBack=nav.idx>0, canForward=nav.idx<nav.stack.length-1;
+  // Selecting a view also exits fullscreen; drop-in replacement for the old setSelected.
+  const setSelected=useCallback((view)=>{ setFullscreen(false); navigate(view); },[navigate]);
 
   // Initial cloud load: pull permits, areas, and floor images so every device shows the same data.
   const refresh=useCallback(async()=>{
@@ -1105,9 +1129,17 @@ function App(){
       {/* Main */}
       <div className="main">
         <div className="header">
-          <div>
-            <h1>Contractor Management</h1>
-            <div className="sub">Permit to Work System{selected!=='Overview'?' · '+selected:''}</div>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <div style={{display:'flex',gap:4}}>
+              <button className="btn btn-light btn-icon" title="Back" disabled={!canBack}
+                onClick={goBack} style={{opacity:canBack?1:.4,cursor:canBack?'pointer':'default'}}>←</button>
+              <button className="btn btn-light btn-icon" title="Forward" disabled={!canForward}
+                onClick={goForward} style={{opacity:canForward?1:.4,cursor:canForward?'pointer':'default'}}>→</button>
+            </div>
+            <div>
+              <h1>Contractor Management</h1>
+              <div className="sub">Permit to Work System{selected!=='Overview'?' · '+selected:''}</div>
+            </div>
           </div>
           <div className="header-actions">
             <span title={online?'Synced with Supabase cloud':'Offline — showing cached data'}
